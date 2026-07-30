@@ -17,4 +17,6 @@ public class MeResponse {
     private String role;
     /** 医生 ID，DOCTOR 才有，ADMIN 为 null。 */
     private Long doctorId;
+    /** 首登改密标志（ADR-0005）。 */
+    private boolean mustChangePassword;
 }

@@ -19,13 +19,18 @@ public class SysUser {
     @TableId(type = IdType.AUTO)
     private Long id;
 
+    /** 展示标签（非登录键；ADMIN 固定"管理员"，DOCTOR 取姓名，允许 NULL，ADR-0004）。 */
     private String username;
+    /** 登录手机号（NOT NULL UNIQUE，ADR-0004）。 */
+    private String phone;
     /** BCrypt 哈希（$2b$10$...），对齐 01 种子数据。 */
     private String passwordHash;
     /** ADMIN / DOCTOR */
     private String role;
     /** 关联 doctor.id（DOCTOR 必填，ADMIN 为 null）。 */
     private Long doctorId;
+    /** 首登改密标志（ADR-0005）。 */
+    private Boolean mustChangePassword;
     /** 1=启用 0=禁用。 */
     private Integer status;
 }

@@ -1,6 +1,7 @@
 package com.smartmed.backend.auth.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.smartmed.backend.auth.dto.ChangePasswordRequest;
 import com.smartmed.backend.auth.dto.DemoLoginResponse;
 import com.smartmed.backend.auth.dto.LoginRequest;
 import com.smartmed.backend.auth.dto.LoginResponse;
@@ -37,23 +38,26 @@ public class AuthService {
     private final JwtTokenProvider tokenProvider;
 
     /**
-     * B 端登录：账号密码 -> JWT（typ=B，exp=12h）。
-     * 失败抛 BusinessException(401, "用户名或密码错误")，不区分用户名错/密码错防枚举。
+     * B 端登录：手机号 + 密码 -> JWT（typ=B，exp=12h，ADR-0004）。
+     * 失败抛 BusinessException(401, "用户名或密码错误")，不区分手机号错/密码错防枚举。
      */
     public LoginResponse login(LoginRequest req) {
         SysUser user = sysUserMapper.selectOne(
-                new LambdaQueryWrapper<SysUser>().eq(SysUser::getUsername, req.getUsername()));
+                new LambdaQueryWrapper<SysUser>().eq(SysUser::getPhone, req.getPhone()));
         // 用户不存在 / 密码不匹配 / 账号禁用 均视为登录失败
         if (user == null || user.getStatus() == null || user.getStatus() != 1
                 || !passwordEncoder.matches(req.getPassword(), user.getPasswordHash())) {
             throw new BusinessException(401, "用户名或密码错误");
         }
-        String token = tokenProvider.issueBToken(user.getId(), user.getUsername(), user.getRole(), user.getDoctorId());
+        boolean mustChange = Boolean.TRUE.equals(user.getMustChangePassword());
+        String token = tokenProvider.issueBToken(user.getId(), user.getUsername(),
+                user.getRole(), user.getDoctorId(), mustChange);
         return LoginResponse.builder()
                 .token(token)
                 .role(user.getRole())
                 .doctorId(user.getDoctorId())
                 .expiresIn(tokenProvider.getBExpireSeconds())
+                .mustChangePassword(mustChange)
                 .build();
     }
 
@@ -83,6 +87,22 @@ public class AuthService {
                 .username(p.getUsername())
                 .role(p.getRole())
                 .doctorId(p.getDoctorId())
+                .mustChangePassword(p.isMustChangePassword())
                 .build();
+    }
+
+    /**
+     * 修改密码（ADR-0005 首登改密）：校验旧密码 -> BCrypt 新密码 -> 置 must_change_password=false。
+     * 旧密码错误抛 BusinessException(401, "旧密码错误")。
+     */
+    public void changePassword(ChangePasswordRequest req) {
+        UserPrincipal p = SecurityUtil.current();
+        SysUser user = sysUserMapper.selectById(p.getUserId());
+        if (user == null || !passwordEncoder.matches(req.getOldPassword(), user.getPasswordHash())) {
+            throw new BusinessException(401, "旧密码错误");
+        }
+        user.setPasswordHash(passwordEncoder.encode(req.getNewPassword()));
+        user.setMustChangePassword(false);
+        sysUserMapper.updateById(user);
     }
 }

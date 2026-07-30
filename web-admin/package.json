@@ -1,0 +1,24 @@
+{
+  "name": "smartmed-web-admin",
+  "version": "0.0.1",
+  "private": true,
+  "description": "智愈 SmartMed B 端管理后台",
+  "scripts": {
+    "dev": "max dev",
+    "build": "max build",
+    "setup": "max setup",
+    "postinstall": "max setup"
+  },
+  "dependencies": {
+    "@ant-design/icons": "^5.3.0",
+    "@umijs/max": "^4.3.0",
+    "ahooks": "^3.8.0",
+    "antd": "^5.20.0",
+    "zustand": "^4.5.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "typescript": "^5.5.0"
+  }
+}

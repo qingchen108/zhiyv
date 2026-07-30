@@ -5,7 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 
-/** B 端登录响应（02 ticket 接口契约）。ADMIN 时 doctorId 省略（非 null 占位）。 */
+/** B 端登录响应（03 ticket 接口契约）。ADMIN 时 doctorId 省略（非 null 占位）。 */
 @Data
 @Builder
 @AllArgsConstructor
@@ -20,4 +20,6 @@ public class LoginResponse {
     private Long doctorId;
     /** 过期秒数（12h = 43200）。 */
     private long expiresIn;
+    /** 首登改密标志：true 表示须改密后使用（ADR-0005）。 */
+    private boolean mustChangePassword;
 }

@@ -51,8 +51,8 @@ public class JwtTokenProvider {
         this.key = Keys.hmacShaKeyFor(bytes);
     }
 
-    /** 签发 B 端 token。doctorId 为 null 时（ADMIN）不写入 claim。 */
-    public String issueBToken(Long userId, String username, String role, Long doctorId) {
+    /** 签发 B 端 token。doctorId 为 null 时（ADMIN）不写入 claim。mustChangePassword 写入供 /me 零 DB 回读（ADR-0005）。 */
+    public String issueBToken(Long userId, String username, String role, Long doctorId, boolean mustChangePassword) {
         long now = System.currentTimeMillis();
         long exp = now + bExpireSeconds * 1000;
         return Jwts.builder()
@@ -61,6 +61,7 @@ public class JwtTokenProvider {
                 .claim("role", role)
                 .claim("username", username)
                 .claim("doctor_id", doctorId)
+                .claim("must_change_password", mustChangePassword)
                 .issuedAt(new Date(now))
                 .expiration(new Date(exp))
                 .signWith(key)
@@ -107,12 +108,14 @@ public class JwtTokenProvider {
                 String username = c.get("username", String.class);
                 Object did = c.get("doctor_id");
                 Long doctorId = did == null ? null : Long.valueOf(did.toString());
+                Boolean mustChange = c.get("must_change_password", Boolean.class);
                 return UserPrincipal.builder()
                         .typ(TYP_B)
                         .userId(userId)
                         .username(username)
                         .role(role)
                         .doctorId(doctorId)
+                        .mustChangePassword(mustChange != null && mustChange)
                         .build();
             }
             if (TYP_C.equals(typ)) {
