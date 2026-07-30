@@ -27,16 +27,20 @@ CREATE TABLE hospital (
 -- ---------------------------------------------------------------------------
 -- 2. sys_user 系统登录账号 (B 端 ADMIN/DOCTOR 登录, 与 doctor 业务实体分离)
 --    patient 不走此表 (C 端 demo-login 按预设 patient.id 签 JWT, patient 无密码列)
+--    登录键为 phone (NOT NULL UNIQUE), 见 ADR-0004; username 降级为展示标签
+--    (ADMIN 固定"管理员", DOCTOR 取医生姓名, 允许重复/NULL), 见 ADR-0004
 -- ---------------------------------------------------------------------------
 CREATE TABLE sys_user (
-    id              BIGSERIAL    PRIMARY KEY,
-    username        VARCHAR(64)  NOT NULL UNIQUE,
-    password_hash   VARCHAR(128) NOT NULL,        -- BCrypt 哈希 ($2b$10$...), 见 01 ticket 跨 ticket 耦合说明
-    role            VARCHAR(16)  NOT NULL,        -- 枚举: ADMIN / DOCTOR
-    doctor_id       BIGINT,                        -- 关联 doctor.id (DOCTOR 角色必填, ADMIN 可空)
-    status          SMALLINT     NOT NULL DEFAULT 1, -- 1=启用 0=禁用
-    created_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
-    updated_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    id                   BIGSERIAL    PRIMARY KEY,
+    username             VARCHAR(64),                    -- 展示标签, 非登录键 (ADR-0004: 去 UNIQUE, 允许 NULL)
+    phone                VARCHAR(32)  NOT NULL UNIQUE,   -- 登录键 (ADR-0004)
+    password_hash        VARCHAR(128) NOT NULL,          -- BCrypt 哈希 ($2b$10$...), 见 01 ticket 跨 ticket 耦合说明
+    role                 VARCHAR(16)  NOT NULL,          -- 枚举: ADMIN / DOCTOR
+    doctor_id            BIGINT,                         -- 关联 doctor.id (DOCTOR 角色必填, ADMIN 可空)
+    must_change_password BOOLEAN      NOT NULL DEFAULT FALSE, -- 首登改密标志 (ADR-0005)
+    status               SMALLINT     NOT NULL DEFAULT 1,    -- 1=启用 0=禁用
+    created_at           TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    updated_at           TIMESTAMPTZ  NOT NULL DEFAULT now(),
     CONSTRAINT chk_sys_user_role CHECK (role IN ('ADMIN', 'DOCTOR'))
 );
 CREATE INDEX idx_sys_user_doctor_id ON sys_user (doctor_id);
@@ -89,16 +93,20 @@ CREATE INDEX idx_department_hospital_id ON department (hospital_id);
 
 -- ---------------------------------------------------------------------------
 -- 6. doctor 医生 (关联科室, PRD 6.3)
+--    phone 不落本表, 单源镜像到 sys_user.phone, 展示靠 JOIN (ADR-0005)
+--    年龄由 birth_date 派生计算, 不存 age 列 (与 patient 口径一致, grill Q4)
 -- ---------------------------------------------------------------------------
 CREATE TABLE doctor (
     id              BIGSERIAL    PRIMARY KEY,
     department_id   BIGINT       NOT NULL,
-    name            VARCHAR(64)  NOT NULL,
-    title           VARCHAR(32),                   -- 职称: 主任医师/副主任医师/主治医师/住院医师
-    specialty       VARCHAR(256),                  -- 擅长领域
+    name            VARCHAR(64)  NOT NULL,                 -- 姓名, 同步写 sys_user.username (ADR-0005)
+    gender          VARCHAR(8),                            -- 男/女 (03 新增, 与 patient.gender 一致)
+    birth_date      DATE,                                  -- 出生日期, 年龄派生计算 (03 新增, grill Q4)
+    title           VARCHAR(32),                           -- 职称: 主任医师/副主任医师/主治医师/住院医师
+    specialty       VARCHAR(256),                          -- 擅长领域
     avatar_url      VARCHAR(512),
     intro           TEXT,
-    good_rate       NUMERIC(5,2),                  -- 好评率, 百分比
+    good_rate       NUMERIC(5,2),                          -- 好评率, 百分比, 手动录入
     created_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
     updated_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
     CONSTRAINT fk_doctor_department FOREIGN KEY (department_id) REFERENCES department (id)

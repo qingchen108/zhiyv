@@ -36,25 +36,25 @@ INSERT INTO department (id, hospital_id, name, description) VALUES
 SELECT setval(pg_get_serial_sequence('department', 'id'), (SELECT MAX(id) FROM department));
 
 -- ---------------------------------------------------------------------------
--- 医生 (基础医生, 含演示医生)
+-- 医生 (基础医生, 含演示医生; gender/birth_date 03 新增, phone 单源镜像到 sys_user)
 -- ---------------------------------------------------------------------------
-INSERT INTO doctor (id, department_id, name, title, specialty, intro, good_rate) VALUES
-(1, 2, '张呼吸', '主任医师', '呼吸系统感染、慢性咳嗽、哮喘', '从事呼吸内科临床 20 年', 98.00),
-(2, 1, '李神经', '主任医师', '偏头痛、脑血管病、眩晕', '神经内科专家, 擅长头痛诊治', 97.50),
-(3, 4, '王心血管', '副主任医师', '高血压、冠心病、心律失常', '心血管内科资深医师', 96.00),
-(4, 3, '赵消化', '主治医师', '消化性溃疡、胃食管反流、胃肠炎', '消化内科中青年骨干', 95.00),
-(5, 5, '钱内分泌', '主任医师', '糖尿病、甲状腺疾病', '内分泌科主任医师', 97.00);
+INSERT INTO doctor (id, department_id, name, gender, birth_date, title, specialty, intro, good_rate) VALUES
+(1, 2, '张呼吸', '男', '1975-03-10', '主任医师', '呼吸系统感染、慢性咳嗽、哮喘', '从事呼吸内科临床 20 年', 98.00),
+(2, 1, '李神经', '男', '1968-07-22', '主任医师', '偏头痛、脑血管病、眩晕', '神经内科专家, 擅长头痛诊治', 97.50),
+(3, 4, '王心血管', '女', '1978-11-05', '副主任医师', '高血压、冠心病、心律失常', '心血管内科资深医师', 96.00),
+(4, 3, '赵消化', '男', '1982-09-18', '主治医师', '消化性溃疡、胃食管反流、胃肠炎', '消化内科中青年骨干', 95.00),
+(5, 5, '钱内分泌', '女', '1970-02-14', '主任医师', '糖尿病、甲状腺疾病', '内分泌科主任医师', 97.00);
 SELECT setval(pg_get_serial_sequence('doctor', 'id'), (SELECT MAX(id) FROM doctor));
 
 -- ---------------------------------------------------------------------------
--- 系统登录账号 (B 端, BCrypt 哈希)
---   admin   / admin123   (ADMIN,  无 doctor_id)
---   doctor  / doctor123  (DOCTOR, 关联 doctor.id=1)
--- 明文密码仅记录在 .env.example 注释, 不入库
+-- 系统登录账号 (B 端, BCrypt 哈希; 登录键 phone, 见 ADR-0004)
+--   admin  / admin123   (ADMIN,  无 doctor_id, phone=13800000000)
+--   doctor / doctor123  (DOCTOR, 关联 doctor.id=1, phone=13800000002)
+--   明文密码仅记录在 .env.example 注释, 不入库; must_change_password=true 触发首登改密 (ADR-0005)
 -- ---------------------------------------------------------------------------
-INSERT INTO sys_user (id, username, password_hash, role, doctor_id, status) VALUES
-(1, 'admin',  '$2b$10$HaNFmrpQXj/hYdernbpt/uqDUeQGqXbq/tbaMh6Qv2cE7WYljbUbO', 'ADMIN',  NULL, 1),
-(2, 'doctor', '$2b$10$eaKh.iaJd37vFM9XqCxe2.4Xf12ICp/08JvbTcMY2TejNqNlDBxja', 'DOCTOR', 1,    1);
+INSERT INTO sys_user (id, username, phone, password_hash, role, doctor_id, must_change_password, status) VALUES
+(1, '管理员', '13800000000', '$2b$10$HaNFmrpQXj/hYdernbpt/uqDUeQGqXbq/tbaMh6Qv2cE7WYljbUbO', 'ADMIN',  NULL, TRUE, 1),
+(2, '张呼吸', '13800000002', '$2b$10$eaKh.iaJd37vFM9XqCxe2.4Xf12ICp/08JvbTcMY2TejNqNlDBxja', 'DOCTOR', 1,    TRUE, 1);
 SELECT setval(pg_get_serial_sequence('sys_user', 'id'), (SELECT MAX(id) FROM sys_user));
 
 -- ---------------------------------------------------------------------------
