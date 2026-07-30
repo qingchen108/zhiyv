@@ -15,6 +15,11 @@ spring:
     password: ${DB_PASSWORD:smartmed}
     driver-class-name: org.postgresql.Driver
 
+  # ---------- Flyway (ADR-0008: 应用启动时自动执行迁移脚本) ----------
+  # 默认扫描 classpath:db/migration（脚本放 src/main/resources/db/migration），无工作目录依赖
+  flyway:
+    clean-disabled: false
+
   # ---------- Neo4j (CONTEXT §6，02 仅配连接，09+ 才用) ----------
   neo4j:
     uri: ${NEO4J_URI:bolt://localhost:7687}

@@ -21,6 +21,7 @@
 | JDK | Java 17 |
 | 构建工具 | Maven |
 | ORM | MyBatis-Plus |
+| 数据库迁移 | Flyway（应用启动时自动执行 `db/migration/V*__*.sql`，见 ADR-0008） |
 | 数据库 | PostgreSQL + pgvector 扩展 |
 | 缓存 | Redis |
 | 主键策略 | 自增 BIGINT（BIGSERIAL） |
