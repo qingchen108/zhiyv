@@ -1,7 +1,7 @@
 # 智愈（SmartMed）— 技术决策上下文
 
 > 本文件记录所有已确认的技术决策，作为团队开发的单一参考来源。
-> 最后更新：2026-07-29
+> 最后更新：2026-07-30
 
 ---
 
@@ -26,9 +26,10 @@
 | 主键策略 | 自增 BIGINT（BIGSERIAL） |
 | 删除策略 | 物理删除（直接 DELETE） |
 | 响应格式 | `{ "code": 200, "message": "success", "data": {...} }` |
-| 鉴权 | JWT 无状态，`Authorization: Bearer xxx` |
+| 鉴权 | JWT 无状态，`Authorization: Bearer xxx`；B 端手机号+密码登录（非用户名），sys_user.phone 为登录键（UNIQUE），见 ADR-0004 |
 | 权限模型 | role 枚举（ADMIN / DOCTOR）+ `@PreAuthorize` 注解 |
-| 用户模型 | sys_user（登录账号）与 doctor（业务实体）分离，sys_user.doctor_id 关联 |
+| 用户模型 | sys_user（登录账号）与 doctor（业务实体）分离，sys_user.doctor_id 关联；新建/删除 doctor 同事务建/删 sys_user，见 ADR-0005 |
+| 删除策略 | 物理删除（直接 DELETE）+ 前置引用检查（有引用则 409 拒绝），非级联删，见 ADR-0006 |
 
 ## 3. C 端（miniapp/）
 
@@ -47,7 +48,7 @@
 | UI 库 | Ant Design + AntV |
 | 状态管理 | Zustand |
 | 样式 | Less |
-| 登录 | 账号密码登录，获取 JWT |
+| 登录 | 账号密码登录获取 JWT（手机号+密码，非用户名） |
 
 ## 5. AI Agent（agent/）
 
@@ -115,3 +116,7 @@
 | 演示账号 | C 端预设患者身份，打开即登录，无需授权 |
 | 医院 | 种子数据预设的唯一一家三甲医院，B 端不提供医院管理页面，所有科室/医生/排班均归属此医院 |
 | 药店库存 | 某药店对某药品的备货记录（价格、库存、配送时效），drug_pharmacy_stock 表承载，购药对比的数据来源 |
+| 登录方式 | B 端用手机号+密码登录，sys_user.phone 为登录键（NOT NULL UNIQUE）；username 降级为展示标签（ADMIN 固定"管理员"，DOCTOR 取姓名），见 ADR-0004 |
+| 首登改密 | 新建账号 must_change_password=true，首次登录强制走 `/api/b/auth/change-password` 改密后方可使用，见 ADR-0005 |
+| 医生账号联动 | 新建 doctor 同事务建 sys_user（role=DOCTOR，密码默认 123456，must_change_password=true）；删 doctor 同事务删 sys_user，见 ADR-0005 |
+| 单源镜像 | 手机号只存 sys_user.phone，doctor 表不存 phone，展示靠 JOIN sys_user 取，见 ADR-0005 |
