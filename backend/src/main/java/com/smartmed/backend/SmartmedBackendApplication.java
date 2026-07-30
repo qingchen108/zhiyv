@@ -4,6 +4,7 @@ import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
  * 智愈 SmartMed 后端启动类。
@@ -14,6 +15,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
 @SpringBootApplication
 @MapperScan("com.smartmed.backend.**.mapper")
 @EnableAsync
+@EnableScheduling
 public class SmartmedBackendApplication {
 
     public static void main(String[] args) {

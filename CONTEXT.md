@@ -1,7 +1,7 @@
 # 智愈（SmartMed）— 技术决策上下文
 
 > 本文件记录所有已确认的技术决策，作为团队开发的单一参考来源。
-> 最后更新：2026-07-30
+> 最后更新：2026-07-31
 
 ---
 
@@ -93,6 +93,17 @@
 | 周起点 | 周一 |
 | 日期窗口 | schedule_date ∈ [today, today+14]，不可排过去、最多排 14 天 |
 | Redis 容错 | @Async 重试一次 + ERROR 日志；C 端 Redis miss 回查 PG 回填 |
+| 挂号草稿 | 两段式：创建草稿（Redis TTL 30min + SHA-256 confirmToken）→ 确认消费（DEL key + Lua 扣减） |
+| 草稿 key | `reg_draft:{operatorPatientId}:{visitorId}:{scheduleId}`，visitorId = "self" 或 "fm:{familyMemberId}" |
+| 防刷 key | `reg_ratelimit:{visitorId}:{scheduleId}` TTL 5s，按实际就诊人维度 |
+| Lua 扣减返回值 | 1=成功 / -1=号源不足 / -2=key 不存在（停诊/删除） |
+| Redis-PG 一致性 | Redis 先扣，PG 写入失败则补偿 INCR + ERROR 日志 |
+| 重复挂号 | 实际就诊人 + schedule_id 存在 REGISTERED/VISITED → 400 拒绝 |
+| 家人挂号 | registration.patient_id=操作人，family_member_id=实际就诊人（nullable），见 ADR-0010 |
+| 取消规则 | 就诊前 2h 以上可取消（基准=schedule_date+start_time）；停诊时只更新 PG 不写 Redis |
+| VISITED 流转 | 医生手动标记 + @Scheduled 每 10min 兜底（schedule_date+end_time < now） |
+| reg_no 生成 | DB 序列全局递增，格式 REG+yyyyMMdd+LPAD(seq,3,'0') |
+| 挂号凭证 | 确认成功返回完整挂号记录 JSON（regNo/doctorName/departmentName/scheduleDate/timePeriod/status） |
 
 ## 8. 对话链路
 
@@ -136,3 +147,8 @@
 | 停诊（Suspend） | 排班下线操作，DEL Redis key 使 C 端不可挂号，DB 数据保留，可恢复 |
 | 加号 | 手动增加 remaining_slots 使其超过 total_slots 的操作，表示临时扩容 |
 | 周复制 | 将源周排班批量复制到目标周，total 照抄、remaining 重置为 total，已有组合跳过 |
+| 挂号凭证（Registration Voucher） | 确认挂号成功后返回的完整挂号记录 JSON，含 reg_no、医生、科室、日期、班次、状态 |
+| 确认令牌（Confirm Token） | 草稿创建时生成的 SHA-256 一次性凭证，确认时比对，草稿消费后随 key 删除失效 |
+| 操作人（Operator） | 发起挂号操作的登录患者（JWT 身份），帮家人挂时操作人≠就诊人 |
+| 实际就诊人（Visitor） | 真正接受诊疗的个体，可以是操作人本人或其健康档案中的家庭成员 |
+| 挂号单号（reg_no） | 挂号记录唯一标识，格式 REG+yyyyMMdd+序列号，DB 序列全局递增 |
