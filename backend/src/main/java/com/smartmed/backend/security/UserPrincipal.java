@@ -33,6 +33,8 @@ public class UserPrincipal implements UserDetails {
     private final Long patientId;
     /** 用户名（仅 B 端有）。 */
     private final String username;
+    /** 首登改密标志（B 端，ADR-0005）。 */
+    private final boolean mustChangePassword;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
