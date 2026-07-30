@@ -10,7 +10,7 @@ import com.smartmed.backend.department.entity.Department;
 import com.smartmed.backend.department.mapper.DepartmentMapper;
 import com.smartmed.backend.doctor.entity.Doctor;
 import com.smartmed.backend.doctor.mapper.DoctorMapper;
-import com.smartmed.backend.doctor.mapper.ScheduleMapper;
+import com.smartmed.backend.schedule.mapper.ScheduleMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

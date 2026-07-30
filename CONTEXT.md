@@ -82,6 +82,17 @@
 | 防刷 | 同用户同排班 5 秒频率限制 |
 | 挂号草稿 | Redis + TTL 30min（过期自动作废） |
 | 购药草稿 | Redis + TTL 30min |
+| 时段模型 | 枚举班次：MORNING(08:00-12:00) / AFTERNOON(14:00-17:30) / EVENING(18:00-21:00)，见 ADR-0009 |
+| 冲突校验 | UNIQUE(doctor_id, schedule_date, time_period)，同医生同日同班次不可重复 |
+| 发布流程 | 创建即发布即写 Redis，无草稿态；status 仅 PUBLISHED / SUSPENDED |
+| 停诊/恢复 | 停诊 DEL Redis key；恢复 SET key = DB remaining_slots |
+| 删除约束 | 有挂号引用 → 409 仅可停诊；无引用 → 物理删除 + DEL key |
+| 批量复制 | 周复制：total 照抄、remaining = total（全新放号），已有组合跳过 |
+| 手动调整 | 允许 remaining > total（加号），不可 < 0 |
+| 修改排班 | 全字段可编辑；new_total ≥ 已用数（否则 400）；仍需 UNIQUE + 日期窗口校验 |
+| 周起点 | 周一 |
+| 日期窗口 | schedule_date ∈ [today, today+14]，不可排过去、最多排 14 天 |
+| Redis 容错 | @Async 重试一次 + ERROR 日志；C 端 Redis miss 回查 PG 回填 |
 
 ## 8. 对话链路
 
@@ -121,3 +132,7 @@
 | 首登改密 | 新建账号 must_change_password=true，首次登录强制走 `/api/b/auth/change-password` 改密后方可使用，见 ADR-0005 |
 | 医生账号联动 | 新建 doctor 同事务建 sys_user（role=DOCTOR，密码默认 123456，must_change_password=true）；删 doctor 同事务删 sys_user，见 ADR-0005 |
 | 单源镜像 | 手机号只存 sys_user.phone，doctor 表不存 phone，展示靠 JOIN sys_user 取，见 ADR-0005 |
+| 班次（Time Period） | 排班时段枚举：MORNING / AFTERNOON / EVENING，后端自动映射起止时间，见 ADR-0009 |
+| 停诊（Suspend） | 排班下线操作，DEL Redis key 使 C 端不可挂号，DB 数据保留，可恢复 |
+| 加号 | 手动增加 remaining_slots 使其超过 total_slots 的操作，表示临时扩容 |
+| 周复制 | 将源周排班批量复制到目标周，total 照抄、remaining 重置为 total，已有组合跳过 |

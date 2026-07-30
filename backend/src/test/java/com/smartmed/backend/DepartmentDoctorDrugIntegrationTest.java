@@ -42,9 +42,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @SpringBootTest(properties = {
         "spring.autoconfigure.exclude=" +
-                "org.springframework.boot.autoconfigure.neo4j.Neo4jAutoConfiguration," +
-                "org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration," +
-                "org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration"
+                "org.springframework.boot.autoconfigure.neo4j.Neo4jAutoConfiguration"
 })
 @AutoConfigureMockMvc
 @TestPropertySource(properties = {

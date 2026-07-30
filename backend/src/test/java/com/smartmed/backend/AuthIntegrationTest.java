@@ -31,11 +31,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * 6. demo-login：返回 token + patientName="演示患者" + patientId=1
  */
 @SpringBootTest(properties = {
-        // 02 测试不依赖 Neo4j/Redis，排除其自动配置避免启动时连接探测失败
+        // 04 起 ScheduleRedisService 需要 StringRedisTemplate，不再排除 Redis
         "spring.autoconfigure.exclude=" +
-                "org.springframework.boot.autoconfigure.neo4j.Neo4jAutoConfiguration," +
-                "org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration," +
-                "org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration"
+                "org.springframework.boot.autoconfigure.neo4j.Neo4jAutoConfiguration"
 })
 @AutoConfigureMockMvc
 @TestPropertySource(properties = {

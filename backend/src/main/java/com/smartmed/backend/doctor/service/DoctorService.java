@@ -13,7 +13,7 @@ import com.smartmed.backend.doctor.dto.DoctorRequest;
 import com.smartmed.backend.doctor.dto.DoctorVO;
 import com.smartmed.backend.doctor.entity.Doctor;
 import com.smartmed.backend.doctor.mapper.DoctorMapper;
-import com.smartmed.backend.doctor.mapper.ScheduleMapper;
+import com.smartmed.backend.schedule.mapper.ScheduleMapper;
 import com.smartmed.backend.security.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
