@@ -60,4 +60,28 @@ declare namespace API {
     price: number;
     dosageForm?: string;
   }
+
+  // 排班（04 ticket，ADR-0009）
+  type TimePeriod = 'MORNING' | 'AFTERNOON' | 'EVENING';
+  type ScheduleStatus = 'PUBLISHED' | 'SUSPENDED';
+
+  interface Schedule {
+    id: number;
+    doctorId: number;
+    doctorName?: string;
+    departmentId: number;
+    departmentName?: string;
+    scheduleDate: string;
+    startTime: string;
+    endTime: string;
+    timePeriod: TimePeriod;
+    totalSlots: number;
+    remainingSlots: number;
+    status: ScheduleStatus;
+  }
+
+  interface CopyWeekResult {
+    skipped: number;
+    created: number;
+  }
 }

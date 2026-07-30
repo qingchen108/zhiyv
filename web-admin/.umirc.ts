@@ -13,6 +13,7 @@ export default defineConfig({
       routes: [
         { path: '/department', name: '科室管理', component: 'department', access: 'loggedIn' },
         { path: '/doctor', name: '医生管理', component: 'doctor', access: 'loggedIn' },
+        { path: '/schedule', name: '排班管理', component: 'schedule', access: 'loggedIn' },
         { path: '/drug', name: '药品管理', component: 'drug', access: 'loggedIn' },
         { path: '/change-password', name: '修改密码', component: 'changePassword', access: 'loggedIn' },
       ],
