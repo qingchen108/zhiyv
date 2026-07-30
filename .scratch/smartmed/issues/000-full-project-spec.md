@@ -127,12 +127,12 @@
 - 数据规模：约 50 症状 + 30 疾病，聚焦常见病种
 - 仅 Java 直连 Neo4j，Python 通过 Java API 间接查询
 
-### 数据库（18 张表）
+### 数据库（20 张表）
 
 - 用户与档案：sys_user、patient、patient_family_member
-- 医院业务：department、doctor、schedule、registration
+- 医院业务：hospital、department、doctor、schedule、registration
 - 问诊与处方：consultation、consultation_message、prescription、prescription_item、prescription_template
-- 药品与购药：drug、pharmacy、drug_order
+- 药品与购药：drug、pharmacy、drug_pharmacy_stock、drug_order
 - AI 与提醒：chat_session、chat_message、medication_reminder
 - 草稿存 Redis 不落表（registration_draft、order_draft 用 Redis Key）
 
