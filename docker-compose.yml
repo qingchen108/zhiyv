@@ -59,12 +59,12 @@ services:
       - "${NEO4J_BOLT_PORT:-7687}:7687"
     volumes:
       - neo4j-data:/data
-      - ./neo4j/init:/var/lib/neo4j/import/init:ro
     healthcheck:
-      test: ["CMD-SHELL", "cypher-shell -a bolt://localhost:7687 -u ${NEO4J_USER:-neo4j} -p ${NEO4J_PASSWORD:-smartmed} \"RETURN 1;\" >/dev/null 2>&1 || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
+      test: ["CMD-SHELL", "wget -q -O /dev/null --timeout=5 http://localhost:7474/ || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 15
+      start_period: 60s
 
   # 一次性容器: 等 Neo4j 就绪后, 用 cypher-shell 执行挂载的初始化脚本
   # Neo4j 官方镜像不原生支持启动时自动跑 .cypher, 故用此 init 容器补齐, 实现 `docker compose up` 后图谱即可查询
