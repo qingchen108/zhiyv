@@ -1,0 +1,29 @@
+# 测试配置：连接 VM 上的真实 PostgreSQL（01 已建好 schema + 种子数据）
+# 本机无 Docker，集成测试直接连真实 PG（只读，不污染数据）。
+# 变量由 backend/.env 注入；测试时通过 surefire environmentVariables 读取。
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:192.168.100.128}:${DB_PORT:5432}/${DB_NAME:smartmed}
+    username: ${DB_USER:smartmed}
+    password: ${DB_PASSWORD:smartmed}
+    driver-class-name: org.postgresql.Driver
+  # 测试不依赖 Neo4j/Redis，禁用自动连接探测失败影响
+  neo4j:
+    uri: ${NEO4J_URI:bolt://192.168.100.128:7687}
+    authentication:
+      username: ${NEO4J_USER:neo4j}
+      password: ${NEO4J_PASSWORD:smartmed}
+  data:
+    redis:
+      host: ${REDIS_HOST:192.168.100.128}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:smartmed}
+
+smartmed:
+  jwt:
+    secret: ${JWT_SECRET:smartmed-dev-jwt-secret-change-me}
+    b-expire-seconds: 43200
+    c-expire-seconds: 604800
+  agent:
+    secret: ${AGENT_SECRET:smartmed-dev-agent-secret-change-me}

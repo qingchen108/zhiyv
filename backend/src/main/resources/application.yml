@@ -1,0 +1,54 @@
+# SmartMed 后端配置（ADR-0003）
+# 变量名以 backend/.env.example 为准，本机运行时由环境变量注入。
+
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  application:
+    name: smartmed-backend
+
+  # ---------- PostgreSQL (CONTEXT §2) ----------
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:smartmed}
+    username: ${DB_USER:smartmed}
+    password: ${DB_PASSWORD:smartmed}
+    driver-class-name: org.postgresql.Driver
+
+  # ---------- Neo4j (CONTEXT §6，02 仅配连接，09+ 才用) ----------
+  neo4j:
+    uri: ${NEO4J_URI:bolt://localhost:7687}
+    authentication:
+      username: ${NEO4J_USER:neo4j}
+      password: ${NEO4J_PASSWORD:neo4j}
+
+  # ---------- Redis (CONTEXT §2 缓存，02 暂不深度使用，预留连接) ----------
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+
+# ---------- MyBatis-Plus ----------
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: AUTO          # 自增 BIGINT（CONTEXT §2 主键策略）
+      logic-delete-field: null  # 物理删除（CONTEXT §2 删除策略）
+
+# ---------- JWT (ADR-0003) ----------
+# B 端 12h、C 端 7d，均无 refresh
+smartmed:
+  jwt:
+    secret: ${JWT_SECRET:smartmed-dev-jwt-secret-change-me}
+    b-expire-seconds: 43200     # 12h
+    c-expire-seconds: 604800    # 7d
+  agent:
+    secret: ${AGENT_SECRET:smartmed-dev-agent-secret-change-me}
+
+logging:
+  level:
+    com.smartmed.backend: info
