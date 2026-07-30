@@ -47,6 +47,13 @@
             <version>${mybatis-plus.version}</version>
         </dependency>
 
+        <!-- Flyway (ADR-0008: 数据库版本控制，应用启动时自动执行迁移脚本)
+             Spring Boot 3.2.5 管理 flyway 9.22.3，PG 支持内置在 flyway-core，无需额外 database-postgresql artifact（10+ 才拆分）-->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+
         <!-- PostgreSQL 驱动 -->
         <dependency>
             <groupId>org.postgresql</groupId>

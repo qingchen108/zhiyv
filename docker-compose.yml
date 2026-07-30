@@ -21,7 +21,7 @@ services:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ./db/init:/docker-entrypoint-initdb.d:ro
+      # schema/种子数据由 Flyway 在应用启动时执行（ADR-0008），postgres 容器只建空库
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-smartmed} -d ${POSTGRES_DB:-smartmed}"]
       interval: 5s
