@@ -22,8 +22,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * 直连 VM 上的真实 PostgreSQL（01 已建好 schema + 种子数据，含 admin/doctor BCrypt 哈希与 patient.id=1 演示患者）。
  * 本机无 Docker，故不用 Testcontainers（见 ticket 测试偏差说明）。测试只读，不污染数据。
  * <p>
- * 6 个场景（02 ticket）：
- * 1. B 端登录成功：返回 token + role + expiresIn=43200
+ * 6 个场景（02 ticket，03 返工对齐 phone 登录 + mustChangePassword）：
+ * 1. B 端登录成功：返回 token + role + expiresIn=43200 + mustChangePassword=true
  * 2. B 端登录密码错：code=401，message="用户名或密码错误"
  * 3. 无 token 访问 /api/b/auth/me：code=401
  * 4. C 端 token 访问 /api/b/**：code=403（typ 不匹配）
@@ -63,18 +63,19 @@ class AuthIntegrationTest {
     @Autowired
     private JwtTokenProvider tokenProvider;
 
-    // 1. B 端登录成功
+    // 1. B 端登录成功（03 返工：phone 登录 + mustChangePassword）
     @Test
     void bLogin_success_returnsTokenRoleExpiresIn() throws Exception {
         MvcResult result = mockMvc.perform(post("/api/auth/login")
                         .contentType("application/json")
-                        .content("{\"username\":\"admin\",\"password\":\"admin123\"}"))
+                        .content("{\"phone\":\"13800000000\",\"password\":\"admin123\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.token").isNotEmpty())
                 .andExpect(jsonPath("$.data.role").value("ADMIN"))
                 .andExpect(jsonPath("$.data.doctorId").doesNotExist()) // ADMIN 为 null，序列化省略
                 .andExpect(jsonPath("$.data.expiresIn").value(43200))
+                .andExpect(jsonPath("$.data.mustChangePassword").value(true))
                 .andReturn();
         // 验证 token 可解析
         JsonNode data = objectMapper.readTree(result.getResponse().getContentAsString()).path("data");
@@ -87,7 +88,7 @@ class AuthIntegrationTest {
     void bLogin_wrongPassword_returns401() throws Exception {
         mockMvc.perform(post("/api/auth/login")
                         .contentType("application/json")
-                        .content("{\"username\":\"admin\",\"password\":\"wrong\"}"))
+                        .content("{\"phone\":\"13800000000\",\"password\":\"wrong\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(401))
                 .andExpect(jsonPath("$.message").value("用户名或密码错误"))
