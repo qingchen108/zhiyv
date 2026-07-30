@@ -31,7 +31,7 @@ CREATE TABLE hospital (
 CREATE TABLE sys_user (
     id              BIGSERIAL    PRIMARY KEY,
     username        VARCHAR(64)  NOT NULL UNIQUE,
-    password_hash   VARCHAR(128) NOT NULL,        -- BCrypt 哈希 ($2a$10$...), 见 01 ticket 跨 ticket 耦合说明
+    password_hash   VARCHAR(128) NOT NULL,        -- BCrypt 哈希 ($2b$10$...), 见 01 ticket 跨 ticket 耦合说明
     role            VARCHAR(16)  NOT NULL,        -- 枚举: ADMIN / DOCTOR
     doctor_id       BIGINT,                        -- 关联 doctor.id (DOCTOR 角色必填, ADMIN 可空)
     status          SMALLINT     NOT NULL DEFAULT 1, -- 1=启用 0=禁用

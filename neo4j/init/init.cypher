@@ -23,11 +23,11 @@ MERGE (d:Department {name: '皮肤科'}) SET d.desc = '诊治皮肤及性传播�
 MERGE (d:Department {name: '眼科'}) SET d.desc = '诊治眼部疾病';
 MERGE (d:Department {name: '耳鼻喉科'}) SET d.desc = '诊治耳、鼻、咽喉疾病';
 MERGE (d:Department {name: '口腔科'}) SET d.desc = '诊治口腔及牙齿疾病';
-MERGE (d:Department {name: '妇科'}) SET d.desc = '诊治女性生殖系统疾病';
 MERGE (d:Department {name: '泌尿外科'}) SET d.desc = '诊治泌尿与男性生殖系统疾病';
 MERGE (d:Department {name: '急诊科'}) SET d.desc = '紧急救治与危重症';
 MERGE (d:Department {name: '普通外科'}) SET d.desc = '诊治需手术的综合外科疾病';
 MERGE (d:Department {name: '儿科'}) SET d.desc = '诊治儿童疾病';
+MERGE (d:Department {name: '血液内科'}) SET d.desc = '诊治血液系统疾病';
 
 // ============ 节点: 症状 Symptom (约 50) ============
 MERGE (:Symptom {name: '头痛'});
@@ -112,6 +112,7 @@ MERGE (:Disease {name: '肾结石'});
 MERGE (:Disease {name: '缺铁性贫血'});
 MERGE (:Disease {name: '脑卒中'});
 MERGE (:Disease {name: '心肌梗死'});
+MERGE (:Disease {name: '哮喘'});
 
 // ============ 节点: 药品 Drug ============
 MERGE (:Drug {name: '布洛芬'});
@@ -134,6 +135,7 @@ MERGE (:Drug {name: '氨溴索'});
 MERGE (:Drug {name: '甲巯咪唑'});
 MERGE (:Drug {name: '左氧氟沙星'});
 MERGE (:Drug {name: '硝酸甘油'});
+MERGE (:Drug {name: '奥司他韦'});
 
 // ============ 节点: 过敏原 Allergen ============
 MERGE (:Allergen {name: '青霉素'});
