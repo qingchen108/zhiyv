@@ -95,7 +95,7 @@
 | Redis 容错 | @Async 重试一次 + ERROR 日志；C 端 Redis miss 回查 PG 回填 |
 | 挂号草稿 | 两段式：创建草稿（Redis TTL 30min + SHA-256 confirmToken）→ 确认消费（DEL key + Lua 扣减） |
 | 草稿 key | `reg_draft:{operatorPatientId}:{visitorId}:{scheduleId}`，visitorId = "self" 或 "fm:{familyMemberId}" |
-| 防刷 key | `reg_ratelimit:{visitorId}:{scheduleId}` TTL 5s，按实际就诊人维度 |
+| 防刷 key | `reg_ratelimit:{operatorId}:{visitorId}:{scheduleId}` TTL 5s，按操作人+就诊人维度 |
 | Lua 扣减返回值 | 1=成功 / -1=号源不足 / -2=key 不存在（停诊/删除） |
 | Redis-PG 一致性 | Redis 先扣，PG 写入失败则补偿 INCR + ERROR 日志 |
 | 重复挂号 | 实际就诊人 + schedule_id 存在 REGISTERED/VISITED → 400 拒绝 |

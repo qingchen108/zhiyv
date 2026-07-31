@@ -143,7 +143,7 @@ public class RegistrationService {
         String visitorId = redisService.buildVisitorId(familyMemberId);
 
         // 1. 防刷校验
-        if (!redisService.tryAcquireRateLimit(visitorId, scheduleId)) {
+        if (!redisService.tryAcquireRateLimit(patientId, visitorId, scheduleId)) {
             throw new BusinessException(400, "操作过于频繁，请5秒后重试");
         }
 
@@ -197,9 +197,8 @@ public class RegistrationService {
             reg.setStatus("REGISTERED");
             registrationMapper.insert(reg);
 
-            // 同步 PG remaining_slots
-            schedule.setRemainingSlots(schedule.getRemainingSlots() - 1);
-            scheduleMapper.updateById(schedule);
+            // 原子更新 PG remaining_slots
+            scheduleMapper.decrRemaining(scheduleId);
 
             return toVO(reg);
         } catch (Exception e) {
@@ -240,10 +239,9 @@ public class RegistrationService {
         reg.setStatus("CANCELLED");
         registrationMapper.updateById(reg);
 
-        // 释放号源：PG +1
+        // 释放号源：PG 原子 +1
         if (schedule != null) {
-            schedule.setRemainingSlots(schedule.getRemainingSlots() + 1);
-            scheduleMapper.updateById(schedule);
+            scheduleMapper.incrRemaining(reg.getScheduleId());
 
             // Redis：仅 PUBLISHED 时 INCR（停诊时 key 已 DEL，恢复时从 DB 读）
             if ("PUBLISHED".equals(schedule.getStatus())) {

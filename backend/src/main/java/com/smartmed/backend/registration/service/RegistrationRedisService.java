@@ -106,8 +106,8 @@ public class RegistrationRedisService {
     // ==================== 防刷 ====================
 
     /** 构建防刷 key。 */
-    private String buildRateLimitKey(String visitorId, Long scheduleId) {
-        return RATELIMIT_PREFIX + visitorId + ":" + scheduleId;
+    private String buildRateLimitKey(Long operatorId, String visitorId, Long scheduleId) {
+        return RATELIMIT_PREFIX + operatorId + ":" + visitorId + ":" + scheduleId;
     }
 
     /**
@@ -115,8 +115,8 @@ public class RegistrationRedisService {
      *
      * @return true=通过（未触发限流），false=被拦截（5秒内重复）
      */
-    public boolean tryAcquireRateLimit(String visitorId, Long scheduleId) {
-        String key = buildRateLimitKey(visitorId, scheduleId);
+    public boolean tryAcquireRateLimit(Long operatorId, String visitorId, Long scheduleId) {
+        String key = buildRateLimitKey(operatorId, visitorId, scheduleId);
         Boolean acquired = redisTemplate.opsForValue().setIfAbsent(key, "1", RATELIMIT_TTL);
         return Boolean.TRUE.equals(acquired);
     }

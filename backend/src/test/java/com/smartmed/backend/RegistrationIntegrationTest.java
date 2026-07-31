@@ -162,8 +162,8 @@ class RegistrationIntegrationTest {
         long scheduleId2 = createSchedule(tomorrow(), "MORNING", 10);
         String confirmToken2 = createDraftAndGetToken(scheduleId2);
 
-        // 手动设置防刷 key 模拟 5 秒内重复
-        redisTemplate.opsForValue().set("reg_ratelimit:self:" + scheduleId2, "1",
+        // 手动设置防刷 key 模拟 5 秒内重复（key 含 operatorId=1）
+        redisTemplate.opsForValue().set("reg_ratelimit:1:self:" + scheduleId2, "1",
                 java.time.Duration.ofSeconds(5));
 
         mockMvc.perform(post("/api/c/registrations/confirm")
@@ -188,7 +188,7 @@ class RegistrationIntegrationTest {
                 .andExpect(jsonPath("$.code").value(200));
 
         // 清除防刷 key 以测试重复挂号校验
-        redisTemplate.delete("reg_ratelimit:self:" + scheduleId);
+        redisTemplate.delete("reg_ratelimit:1:self:" + scheduleId);
 
         // 再次创建草稿 → 重复挂号校验在草稿阶段就拦住
         mockMvc.perform(post("/api/c/registrations/draft")
