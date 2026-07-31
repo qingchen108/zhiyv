@@ -2,15 +2,8 @@ import type { Settings as LayoutSettings } from '@ant-design/pro-components';
 import { RunTimeLayoutConfig } from '@umijs/max';
 import { history } from '@umijs/max';
 
-// 权限定义（Q14：access 插件，loggedIn/isDoctor）
-export function access(initialState: { currentUser?: API.CurrentUser }) {
-  const currentUser = initialState.currentUser;
-  return {
-    loggedIn: !!currentUser,
-    isDoctor: currentUser?.role === 'DOCTOR',
-    isAdmin: currentUser?.role === 'ADMIN',
-  };
-}
+// 权限定义已迁移至 src/access.ts（access 插件读 @/access 的默认导出），
+// 不再在 app.ts 里导出 access，避免与 access 插件职责重复。
 
 // 请求层拦截器（ADR-0007）：注入 JWT + 401 跳登录
 export const request = {
@@ -69,19 +62,24 @@ export const layout: RunTimeLayoutConfig = ({ initialState }) => {
     fixedHeader: true,
     fixSiderbar: true,
     currentUser: currentUser as any,
-    // 首页按角色重定向（06 ticket Q19）：DOCTOR -> /workspace，ADMIN -> /department
+    // 页面切换：未登录拦截 + 首页按角色重定向
     onPageChange: (location: { pathname: string }) => {
+      // 公开路由白名单（不拦截）
+      const PUBLIC_PATHS = ['/login'];
+      // 未登录访问任何受保护页 -> 跳登录（避免 access 路由渲染 403）
+      if (!currentUser && !PUBLIC_PATHS.includes(location.pathname)) {
+        history.replace('/login');
+        return;
+      }
+      // 已登录时的首页按角色重定向（06 ticket Q19）：DOCTOR -> /workspace，ADMIN -> /department
       if (location.pathname === '/') {
         const role = currentUser?.role;
         history.replace(role === 'DOCTOR' ? '/workspace' : '/department');
       }
     },
-    // 退出登录
-    rightContentRender: () => {
-      return undefined;
-    },
-    // 菜单路由由 .umirc.ts routes 驱动
-    route: undefined,
+    // 注意：勿设 route: undefined。Layout.tsx 用 {...runtimeConfig} 展开会覆盖 ProLayout 的 route 属性，
+    // 导致菜单数据算成空数组、侧边栏不显示。route 由 Layout.tsx 从 clientRoutes 算好后传入，不可覆盖。
+    // 退出登录（顶栏头像下拉，rightContentRender 不设以保留默认用户区 + logout 入口）
     logout: () => {
       localStorage.removeItem('smartmed_token');
       localStorage.removeItem('smartmed_user');

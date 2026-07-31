@@ -13,20 +13,31 @@ export default function LoginPage() {
   const { run: onSubmit, loading } = useRequest(
     async (values: { phone: string; password: string }) => {
       const res = await login(values);
+      // 后端统一响应 {code,message,data}，HTTP 恒 200。errorThrower 可能因 res 结构差异未抛错，
+      // 此处显式校验 code，确保密码错误等业务错误有友好提示（而非读到 undefined 报错）。
+      if (!res || res.code !== 200 || !res.data) {
+        throw new Error(res?.message || '登录失败');
+      }
       const { token, mustChangePassword } = res.data;
       // 先存 token，再拉 /me 拿用户信息（mustChangePassword 也在 /me）
       localStorage.setItem('smartmed_token', token);
       const meRes = await getMe();
+      if (!meRes || meRes.code !== 200 || !meRes.data) {
+        throw new Error(meRes?.message || '获取用户信息失败');
+      }
       const user = meRes.data;
       useAuthStore.getState().setAuth(token, user);
       await setInitialState((s) => ({ ...s, currentUser: user }));
 
       if (mustChangePassword) {
         message.warning('首次登录请修改密码');
-        history.push('/change-password');
+        window.location.href = '/change-password';
       } else {
         message.success('登录成功');
-        history.push('/department');
+        // 整页加载进入首页：绕过 SPA 路由闭包竞争（onPageChange 的 currentUser 闭包此时还是旧值，
+        // 用 history.replace 会被未登录拦截误判回 /login）。登录低频，整页加载可接受。
+        // 按角色跳首页（06 ticket Q19）：DOCTOR -> /workspace，ADMIN -> /department
+        window.location.href = user.role === 'DOCTOR' ? '/workspace' : '/department';
       }
     },
     {

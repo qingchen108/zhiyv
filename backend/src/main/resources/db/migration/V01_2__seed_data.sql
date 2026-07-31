@@ -49,11 +49,12 @@ SELECT setval(pg_get_serial_sequence('doctor', 'id'), (SELECT MAX(id) FROM docto
 -- 系统登录账号 (B 端, BCrypt 哈希; 登录键 phone, 见 ADR-0004)
 --   admin  / admin123   (ADMIN,  无 doctor_id, phone=13800000000)
 --   doctor / doctor123  (DOCTOR, 关联 doctor.id=1, phone=13800000002)
---   明文密码仅记录在 .env.example 注释, 不入库; must_change_password=true 触发首登改密 (ADR-0005)
+--   明文密码仅记录在 .env.example 注释, 不入库.
+--   演示账号免首登改密 (must_change_password=FALSE, 直接可用); 改密机制保留给后续新建账号 (ADR-0005).
 -- ---------------------------------------------------------------------------
 INSERT INTO sys_user (id, username, phone, password_hash, role, doctor_id, must_change_password, status) VALUES
-(1, '管理员', '13800000000', '$2b$10$HaNFmrpQXj/hYdernbpt/uqDUeQGqXbq/tbaMh6Qv2cE7WYljbUbO', 'ADMIN',  NULL, TRUE, 1),
-(2, '张呼吸', '13800000002', '$2b$10$eaKh.iaJd37vFM9XqCxe2.4Xf12ICp/08JvbTcMY2TejNqNlDBxja', 'DOCTOR', 1,    TRUE, 1);
+(1, '管理员', '13800000000', '$2b$10$HaNFmrpQXj/hYdernbpt/uqDUeQGqXbq/tbaMh6Qv2cE7WYljbUbO', 'ADMIN',  NULL, FALSE, 1),
+(2, '张呼吸', '13800000002', '$2b$10$eaKh.iaJd37vFM9XqCxe2.4Xf12ICp/08JvbTcMY2TejNqNlDBxja', 'DOCTOR', 1,    FALSE, 1);
 SELECT setval(pg_get_serial_sequence('sys_user', 'id'), (SELECT MAX(id) FROM sys_user));
 
 -- ---------------------------------------------------------------------------

@@ -1,5 +1,7 @@
 # SmartMed 后端配置（ADR-0003）
-# 变量名以 backend/.env.example 为准，本机运行时由环境变量注入。
+# 变量名以 backend/.env.example 为准，配置默认从 backend/.env 读取（见 spring.config.import）。
+# .env 不入库（.gitignore），本机首次运行需 cp .env.example .env 后按需修改。
+# .env 找不到时不报错（optional），改回退用 ${VAR:默认值} 的默认值，兼容无 .env 的环境（CI/容器等）。
 
 server:
   port: ${SERVER_PORT:8080}
@@ -7,6 +9,11 @@ server:
 spring:
   application:
     name: smartmed-backend
+  # 导入 backend/.env：[.properties] 提示 Spring 把无扩展名的 .env 当 properties 解析（KEY=VALUE）。
+  # file:.env 的 "." 是 JVM 工作目录（mvn spring-boot:run / java -jar 均为 backend/）。
+  # optional: 找不到时静默跳过，不阻断启动。导入属性优先级高于本文件，故 .env 覆盖下方默认值。
+  config:
+    import: "optional:file:.env[.properties]"
 
   # ---------- PostgreSQL (CONTEXT §2) ----------
   # stringtype=unspecified：允许字符串写入 jsonb 列（prescription_template.content，ADR-0012 配套）

@@ -2,6 +2,7 @@ import { Button, Card, Form, Input, Typography, message } from 'antd';
 import { useRequest } from 'ahooks';
 import { history, useModel } from '@umijs/max';
 import { changePassword } from '@/services/auth';
+import { useAuthStore } from '@/stores/auth';
 
 const { Title } = Typography;
 
@@ -12,12 +13,21 @@ export default function ChangePasswordPage() {
   const { run: onSubmit, loading } = useRequest(
     async (values: { oldPassword: string; newPassword: string }) => {
       await changePassword(values);
-      message.success('密码修改成功，请重新登录');
-      // 改密后须重登（token 里 mustChangePassword 仍是旧值）
-      localStorage.removeItem('smartmed_token');
-      localStorage.removeItem('smartmed_user');
-      await setInitialState((s) => ({ ...s, currentUser: undefined }));
-      history.push('/login');
+      // 改密成功：库里已置 must_change_password=false（后端 AuthService.changePassword）。
+      // 同步更新本地用户信息（token 不重签，但该字段仅用于前端展示，无害），然后直进系统，不返登录页。
+      const userStr = localStorage.getItem('smartmed_user');
+      if (userStr) {
+        const user = JSON.parse(userStr) as API.CurrentUser;
+        user.mustChangePassword = false;
+        localStorage.setItem('smartmed_user', JSON.stringify(user));
+        useAuthStore.getState().setAuth(localStorage.getItem('smartmed_token')!, user);
+        await setInitialState((s) => ({ ...s, currentUser: user }));
+      }
+      message.success('密码修改成功');
+      // 整页加载进首页：绕过 SPA 路由闭包竞争（同登录页理由）。
+      // 按角色进首页：DOCTOR -> /workspace，ADMIN -> /department
+      const me = JSON.parse(localStorage.getItem('smartmed_user') || '{}') as API.CurrentUser;
+      window.location.href = me.role === 'DOCTOR' ? '/workspace' : '/department';
     },
     {
       manual: true,
