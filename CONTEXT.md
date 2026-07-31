@@ -124,6 +124,28 @@
 | 协作方式 | 接口契约先行，各端基于契约并行开发 |
 | 总工期 | 2 周（10 个工作日） |
 
+## 10. 问诊与处方（医生工作台）
+
+| 决策项 | 结论 |
+|--------|------|
+| 问诊创建时机 | 确认挂号（05 confirm）同事务自动创建 consultation（WAITING，pre_diagnosis=null），见 ADR-0011 |
+| 问诊状态机 | WAITING -> IN_PROGRESS -> COMPLETED 单向不可回退；COMPLETED 同步 registration 翻 VISITED |
+| no-show 处理 | RegistrationScheduler 把过班次 registration 翻 VISITED 时不碰 consultation，留 WAITING（不闭环 no-show） |
+| 流转权限 | 仅 consultation.doctor_id = 当前医生，跨医生 403；ADMIN 不参与问诊流转 |
+| 预问诊摘要 | 06 只读 pre_diagnosis（null 时前端占位），写入留给 Agent ticket 13 |
+| 诊断保存 | 独立接口 PATCH /consultations/{id}/diagnosis，IN_PROGRESS 可随时改；complete 不强制诊断 |
+| 问诊消息 | 医生侧仅写 DOCTOR 消息、读全部；仅 IN_PROGRESS 可发消息 |
+| 开方时机 | 仅 consultation IN_PROGRESS/COMPLETED 可开方（WAITING 不可）；一问诊允许多处方 |
+| 处方生效 | 保存即 ACTIVE，无药师审核，无撤销接口（REVOKED 态留待后续） |
+| 禁忌检测 | 开方 POST 同步查 Neo4j：过敏冲突（CONTAINS/CONTRAINDICATED_IN 比对就诊人过敏史文本子串）+ 药物相互作用（INTERACTS_WITH），见 ADR-0012 |
+| 过敏史取值 | family_member_id 非空取 patient_family_member.allergy_history，否则取 patient.allergy_history；NULL/空视为无过敏 |
+| 禁忌降级 | Neo4j 查询异常返回空 warnings + ERROR 日志，不阻断开方 |
+| 冲突处理 | 检测有冲突不阻断保存，响应带 warnings；force=true 仅审计标记，不影响保存 |
+| 病历聚合 | 以实际就诊人为中心（family_member_id 口径同 ADR-0010），跨医生可见，不按医生隔离 |
+| 处方模板 | 医生个人模板，content JSONB 与开方 items 同构，开方时前端预填来源，后端不感知 |
+| Neo4j 访问 | 直接 Cypher（Neo4jClient.query），不建 SDN 实体/repository，收 knowledge 包 |
+| 待接诊列表 | 分页 PageResponse，按班次+reg_no 排序，摘要截取前 80 字 |
+
 ---
 
 ## 术语表（Glossary）
@@ -152,3 +174,15 @@
 | 操作人（Operator） | 发起挂号操作的登录患者（JWT 身份），帮家人挂时操作人≠就诊人 |
 | 实际就诊人（Visitor） | 真正接受诊疗的个体，可以是操作人本人或其健康档案中的家庭成员 |
 | 挂号单号（reg_no） | 挂号记录唯一标识，格式 REG+yyyyMMdd+序列号，DB 序列全局递增 |
+| 问诊（Consultation） | 医生与患者的一次诊疗过程，确认挂号时自动创建（WAITING），经 IN_PROGRESS 到 COMPLETED 单向流转，关联 registration_id |
+| 问诊状态机 | WAITING（待接诊）-> IN_PROGRESS（接诊中）-> COMPLETED（已完成），单向不可回退；COMPLETED 时同步 registration 翻 VISITED |
+| 预问诊摘要（pre_diagnosis） | AI 在医生接诊前生成的病情摘要，由 Agent 写入 consultation.pre_diagnosis（06 阶段为空，13 填充），标注"AI 仅供参考" |
+| 诊断（diagnosis） | 医生在问诊过程中填写的诊断结论，存 consultation.diagnosis（问诊级），与处方级诊断独立 |
+| 问诊消息（Consultation Message） | 问诊图文对话记录，sender_type 分 DOCTOR/PATIENT；医生侧仅写 DOCTOR 消息，读全部；仅 IN_PROGRESS 可发 |
+| 禁忌检测（Contraindication Check） | 开方时查 Neo4j 检测处方药的过敏冲突（CONTAINS/CONTRAINDICATED_IN -> Allergen 比对就诊人过敏史）与药物相互作用（INTERACTS_WITH），不阻断保存，返回 warnings |
+| 过敏冲突 | 处方药品含的过敏原与实际就诊人过敏史文本子串匹配命中，禁忌检测结果之一 |
+| 强制开方（force） | 医生确认知晓禁忌 warnings 后强制保存处方，force=true 仅作审计标记，不影响保存行为 |
+| 处方（Prescription） | 医生开具的用药凭证，关联 consultation_id，保存即 ACTIVE（无需药师审核），含诊断+医嘱+明细项 |
+| 处方明细（Prescription Item） | 处方中的单条药品+用法用量记录（drug_id/usage_method/dosage/frequency/remark） |
+| 处方模板（Prescription Template） | 医生个人复用的药+用法集合，content JSONB 与开方 items 同构，开方时预填来源，后端不感知 |
+| 病历（Medical Record） | 以实际就诊人为中心聚合的历史挂号+问诊+处方+过敏史，不按医生隔离，跨医生可见 |

@@ -19,13 +19,13 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 药品管理接口（仅 ADMIN，03 ticket 接口契约）。
+ * 药品管理接口（03 ticket 接口契约）。
  * <ul>
- *   <li>GET    /api/b/drugs          分页（name? 模糊）</li>
- *   <li>GET    /api/b/drugs/{id}     详情</li>
- *   <li>POST   /api/b/drugs          新增</li>
- *   <li>PUT    /api/b/drugs/{id}     编辑</li>
- *   <li>DELETE /api/b/drugs/{id}     删除（物理删+前置检查，ADR-0006）</li>
+ *   <li>GET    /api/b/drugs          分页（name? 模糊）-- ADMIN/DOCTOR（06 开方需选药）</li>
+ *   <li>GET    /api/b/drugs/{id}     详情 -- ADMIN/DOCTOR</li>
+ *   <li>POST   /api/b/drugs          新增 -- 仅 ADMIN</li>
+ *   <li>PUT    /api/b/drugs/{id}     编辑 -- 仅 ADMIN</li>
+ *   <li>DELETE /api/b/drugs/{id}     删除（物理删+前置检查，ADR-0006）-- 仅 ADMIN</li>
  * </ul>
  */
 @RestController
@@ -36,7 +36,9 @@ public class DrugController {
 
     private final DrugService drugService;
 
+    /** 分页查询（ADMIN/DOCTOR，06 医生开方需查药品下拉）。 */
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN','DOCTOR')")
     public Result<PageResponse<DrugVO>> page(
             @RequestParam(defaultValue = "1") long pageNum,
             @RequestParam(defaultValue = "10") long pageSize,
@@ -47,7 +49,9 @@ public class DrugController {
         return Result.success(drugService.page(pageNum, pageSize, name));
     }
 
+    /** 详情（ADMIN/DOCTOR）。 */
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','DOCTOR')")
     public Result<DrugVO> getById(@PathVariable Long id) {
         return Result.success(drugService.getById(id));
     }

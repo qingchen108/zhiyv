@@ -4,18 +4,27 @@ import { defineConfig } from '@umijs/max';
 // 插件（antd/layout/request/access/model）由 @umijs/max preset 按配置字段自动启用，无需显式声明 plugins
 export default defineConfig({
   // 路由（/login 公开，其余走布局 + access 守卫）
+  // 菜单分流：ADMIN 看管理菜单，DOCTOR 看工作台菜单（06 ticket Q19）
+  // 首页 '/' 不在此 redirect，由 src/app.ts 的 onPageChange 按角色跳转（ADMIN->/department, DOCTOR->/workspace）
   routes: [
     { path: '/login', component: 'login', title: '登录' },
-    { path: '/', redirect: '/department' },
     {
       path: '/',
       component: '@/layouts/index',
       routes: [
-        { path: '/department', name: '科室管理', component: 'department', access: 'loggedIn' },
-        { path: '/doctor', name: '医生管理', component: 'doctor', access: 'loggedIn' },
-        { path: '/schedule', name: '排班管理', component: 'schedule', access: 'loggedIn' },
-        { path: '/drug', name: '药品管理', component: 'drug', access: 'loggedIn' },
+        // ===== DOCTOR 菜单（医生工作台，06 ticket） =====
+        { path: '/workspace', name: '医生工作台', component: 'workspace', access: 'isDoctor' },
+        { path: '/workspace/:consultationId', name: '问诊详情', component: 'workspace/detail', access: 'isDoctor', hideInMenu: true },
+        { path: '/prescription-templates', name: '处方模板', component: 'prescriptionTemplate', access: 'isDoctor' },
+        // ===== ADMIN 菜单（管理） =====
+        { path: '/department', name: '科室管理', component: 'department', access: 'isAdmin' },
+        { path: '/doctor', name: '医生管理', component: 'doctor', access: 'isAdmin' },
+        { path: '/schedule', name: '排班管理', component: 'schedule', access: 'isAdmin' },
+        { path: '/drug', name: '药品管理', component: 'drug', access: 'isAdmin' },
+        // ===== 共用 =====
         { path: '/change-password', name: '修改密码', component: 'changePassword', access: 'loggedIn' },
+        // 根路径占位，实际跳转由 onPageChange 处理（避免 redirect 覆盖角色判断）
+        { path: '/', redirect: '/department' },
       ],
     },
   ],

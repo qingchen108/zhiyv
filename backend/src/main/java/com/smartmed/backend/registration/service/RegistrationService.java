@@ -8,6 +8,8 @@ import com.smartmed.backend.auth.entity.Patient;
 import com.smartmed.backend.auth.mapper.PatientMapper;
 import com.smartmed.backend.common.BusinessException;
 import com.smartmed.backend.common.PageResponse;
+import com.smartmed.backend.consultation.entity.Consultation;
+import com.smartmed.backend.consultation.mapper.ConsultationMapper;
 import com.smartmed.backend.department.entity.Department;
 import com.smartmed.backend.department.mapper.DepartmentMapper;
 import com.smartmed.backend.doctor.entity.Doctor;
@@ -55,6 +57,7 @@ public class RegistrationService {
     private final RegistrationRedisService redisService;
     private final ScheduleRedisService scheduleRedisService;
     private final ObjectMapper objectMapper;
+    private final ConsultationMapper consultationMapper;
 
     @Value("${smartmed.jwt.secret}")
     private String jwtSecret;
@@ -196,6 +199,14 @@ public class RegistrationService {
             reg.setRegNo(regNo);
             reg.setStatus("REGISTERED");
             registrationMapper.insert(reg);
+
+            // 同事务自动创建问诊（ADR-0011，06 ticket）：WAITING，pre_diagnosis=null
+            Consultation consultation = new Consultation();
+            consultation.setRegistrationId(reg.getId());
+            consultation.setPatientId(patientId);
+            consultation.setDoctorId(doctorId);
+            consultation.setStatus("WAITING");
+            consultationMapper.insert(consultation);
 
             // 原子更新 PG remaining_slots
             scheduleMapper.decrRemaining(scheduleId);

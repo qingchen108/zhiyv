@@ -9,8 +9,9 @@ spring:
     name: smartmed-backend
 
   # ---------- PostgreSQL (CONTEXT §2) ----------
+  # stringtype=unspecified：允许字符串写入 jsonb 列（prescription_template.content，ADR-0012 配套）
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:smartmed}
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:smartmed}?stringtype=unspecified
     username: ${DB_USER:smartmed}
     password: ${DB_PASSWORD:smartmed}
     driver-class-name: org.postgresql.Driver

@@ -1,5 +1,9 @@
 # 智愈（SmartMed）— Agent 配置
 
+## 语言规则
+
+所有思考（thinking）与回复（reply）必须使用中文。
+
 ## Agent skills
 
 ### Issue tracker

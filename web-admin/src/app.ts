@@ -69,6 +69,13 @@ export const layout: RunTimeLayoutConfig = ({ initialState }) => {
     fixedHeader: true,
     fixSiderbar: true,
     currentUser: currentUser as any,
+    // 首页按角色重定向（06 ticket Q19）：DOCTOR -> /workspace，ADMIN -> /department
+    onPageChange: (location: { pathname: string }) => {
+      if (location.pathname === '/') {
+        const role = currentUser?.role;
+        history.replace(role === 'DOCTOR' ? '/workspace' : '/department');
+      }
+    },
     // 退出登录
     rightContentRender: () => {
       return undefined;

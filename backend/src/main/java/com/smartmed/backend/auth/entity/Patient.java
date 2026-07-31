@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
+import java.time.LocalDate;
+
 /**
  * patient 患者档案（C 端）。
  * <p>
@@ -21,5 +23,6 @@ public class Patient {
     private String name;
     private String phone;
     private String gender;
+    private LocalDate birthDate;
     private String allergyHistory;
 }
