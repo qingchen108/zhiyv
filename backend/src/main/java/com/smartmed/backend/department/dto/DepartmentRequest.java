@@ -11,4 +11,7 @@ public class DepartmentRequest {
     private String name;
 
     private String description;
+
+    /** 科室位置（选填，如 门诊楼3层A区）。 */
+    private String location;
 }

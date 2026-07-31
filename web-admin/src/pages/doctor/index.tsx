@@ -1,7 +1,8 @@
-import { Button, Form, Input, InputNumber, Modal, Popconfirm, Select, Space, Table, message } from 'antd';
+import { Button, DatePicker, Form, Input, InputNumber, Modal, Popconfirm, Select, Space, Table, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useRequest } from 'ahooks';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import dayjs from 'dayjs';
 import { pageDepartments } from '@/services/department';
 import {
   pageDoctors,
@@ -37,11 +38,15 @@ export default function DoctorPage() {
 
   const { run: onSubmit, loading: submitting } = useRequest(
     async (values: any) => {
+      const payload = {
+        ...values,
+        birthDate: values.birthDate ? values.birthDate.format('YYYY-MM-DD') : undefined,
+      };
       if (editingId) {
-        await updateDoctor(editingId, values);
+        await updateDoctor(editingId, payload);
         message.success('修改成功');
       } else {
-        await createDoctor(values);
+        await createDoctor(payload);
         message.success('新增成功');
       }
       setOpen(false);
@@ -58,8 +63,13 @@ export default function DoctorPage() {
 
   const openEdit = (record: API.Doctor) => {
     setEditingId(record.id);
-    form.setFieldsValue({ ...record, birthDate: record.birthDate });
     setOpen(true);
+    setTimeout(() => {
+      form.setFieldsValue({
+        ...record,
+        birthDate: record.birthDate ? dayjs(record.birthDate) : undefined,
+      });
+    }, 0);
   };
 
   const onDelete = async (id: number) => {
@@ -73,8 +83,14 @@ export default function DoctorPage() {
   };
 
   const columns: ColumnsType<API.Doctor> = [
-    { title: 'ID', dataIndex: 'id', width: 70 },
+    {
+      title: '序号',
+      key: 'index',
+      width: 60,
+      render: (_, __, index) => ((data?.page || 1) - 1) * (data?.size || 10) + index + 1,
+    },
     { title: '姓名', dataIndex: 'name', width: 100 },
+    { title: '科室', dataIndex: 'departmentName', width: 120, render: (v) => v || '-' },
     { title: '性别', dataIndex: 'gender', width: 70 },
     { title: '年龄', dataIndex: 'age', width: 70 },
     { title: '职称', dataIndex: 'title', width: 110 },
@@ -108,10 +124,6 @@ export default function DoctorPage() {
     },
   ];
 
-  useEffect(() => {
-    form.resetFields();
-  }, [open]);
-
   return (
     <div>
       <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }} wrap>
@@ -141,7 +153,7 @@ export default function DoctorPage() {
         columns={columns}
         dataSource={data?.records}
         loading={loading}
-        scroll={{ x: 1000 }}
+        scroll={{ x: 1100 }}
         pagination={{
           current: data?.page || 1,
           pageSize: data?.size || 10,
@@ -172,13 +184,17 @@ export default function DoctorPage() {
             <Input placeholder="医生姓名" />
           </Form.Item>
           <Space style={{ display: 'flex' }}>
-            <Form.Item label="性别" name="gender" style={{ flex: 1 }}>
+            <Form.Item label="性别" name="gender" style={{ flex: 1 }} rules={[{ required: true, message: '请选择性别' }]}>
               <Select placeholder="选择性别" options={[{ label: '男', value: '男' }, { label: '女', value: '女' }]} />
             </Form.Item>
-            <Form.Item label="出生日期" name="birthDate" style={{ flex: 1 }}>
-              <Input placeholder="YYYY-MM-DD" />
+            <Form.Item label="出生日期" name="birthDate" style={{ flex: 1 }} rules={[{ required: true, message: '请选择出生日期' }]}>
+              <DatePicker
+                style={{ width: '100%' }}
+                placeholder="选择出生日期"
+                disabledDate={(current) => current && current > dayjs().endOf('day')}
+              />
             </Form.Item>
-            <Form.Item label="职称" name="title" style={{ flex: 1 }}>
+            <Form.Item label="职称" name="title" style={{ flex: 1 }} rules={[{ required: true, message: '请选择职称' }]}>
               <Select placeholder="选择职称" options={TITLES.map((t) => ({ label: t, value: t }))} />
             </Form.Item>
           </Space>

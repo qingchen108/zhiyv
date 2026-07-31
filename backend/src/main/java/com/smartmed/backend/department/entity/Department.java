@@ -23,4 +23,6 @@ public class Department extends BaseEntity {
     private Long hospitalId;
     private String name;
     private String description;
+    /** 科室位置（如 门诊楼3层A区），选填，方便患者寻找。 */
+    private String location;
 }

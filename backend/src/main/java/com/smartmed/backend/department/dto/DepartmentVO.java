@@ -16,4 +16,5 @@ public class DepartmentVO {
     private Long hospitalId;
     private String name;
     private String description;
+    private String location;
 }

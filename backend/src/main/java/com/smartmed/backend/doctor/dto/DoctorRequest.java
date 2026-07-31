@@ -21,8 +21,13 @@ public class DoctorRequest {
     @NotBlank(message = "姓名不能为空")
     private String name;
 
+    @NotBlank(message = "性别不能为空")
     private String gender;
+
+    @NotNull(message = "出生日期不能为空")
     private LocalDate birthDate;
+
+    @NotBlank(message = "职称不能为空")
     private String title;
     private String specialty;
     private String avatarUrl;

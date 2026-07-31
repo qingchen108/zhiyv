@@ -21,6 +21,8 @@ public class DoctorVO {
 
     private Long id;
     private Long departmentId;
+    /** 科室名称（JOIN department 表，方便列表展示）。 */
+    private String departmentName;
     private String name;
     private String gender;
     private LocalDate birthDate;

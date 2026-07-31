@@ -1,7 +1,7 @@
 import { Button, Form, Input, Modal, Popconfirm, Space, Table, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useRequest } from 'ahooks';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   pageDepartments,
   createDepartment,
@@ -24,7 +24,7 @@ export default function DepartmentPage() {
 
   // 新增/编辑提交
   const { run: onSubmit, loading: submitting } = useRequest(
-    async (values: { name: string; description?: string }) => {
+    async (values: { name: string; description?: string; location?: string }) => {
       if (editingId) {
         await updateDepartment(editingId, values);
         message.success('修改成功');
@@ -46,8 +46,11 @@ export default function DepartmentPage() {
 
   const openEdit = (record: API.Department) => {
     setEditingId(record.id);
-    form.setFieldsValue(record);
     setOpen(true);
+    // 在下一个事件循环中设置回显，避免被 open 后的 effect 干扰
+    setTimeout(() => {
+      form.setFieldsValue(record);
+    }, 0);
   };
 
   const onDelete = async (id: number) => {
@@ -61,8 +64,14 @@ export default function DepartmentPage() {
   };
 
   const columns: ColumnsType<API.Department> = [
-    { title: 'ID', dataIndex: 'id', width: 80 },
-    { title: '科室名称', dataIndex: 'name' },
+    {
+      title: '序号',
+      key: 'index',
+      width: 60,
+      render: (_, __, index) => ((data?.page || 1) - 1) * (data?.size || 10) + index + 1,
+    },
+    { title: '科室名称', dataIndex: 'name', width: 140 },
+    { title: '位置', dataIndex: 'location', width: 180, ellipsis: true, render: (v) => v || '-' },
     { title: '描述', dataIndex: 'description', ellipsis: true },
     {
       title: '操作',
@@ -89,10 +98,6 @@ export default function DepartmentPage() {
       ),
     },
   ];
-
-  useEffect(() => {
-    form.resetFields();
-  }, [open]);
 
   return (
     <div>
@@ -134,6 +139,9 @@ export default function DepartmentPage() {
         <Form form={form} layout="vertical" onFinish={onSubmit}>
           <Form.Item label="科室名称" name="name" rules={[{ required: true, message: '请输入科室名称' }]}>
             <Input placeholder="如 呼吸内科" />
+          </Form.Item>
+          <Form.Item label="位置" name="location">
+            <Input placeholder="如 门诊楼3层B区（选填）" />
           </Form.Item>
           <Form.Item label="描述" name="description">
             <Input.TextArea placeholder="科室描述（选填）" rows={3} />

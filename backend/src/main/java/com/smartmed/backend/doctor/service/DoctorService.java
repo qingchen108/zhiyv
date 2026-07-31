@@ -57,7 +57,9 @@ public class DoctorService {
         doctorMapper.selectPage(page, qw);
         // 批量取 phone（按 doctor_id 查 sys_user），避免 N+1
         Map<Long, String> phoneByDoctorId = loadPhones(page.getRecords());
-        return PageResponse.of(page.convert(d -> toVO(d, phoneByDoctorId.get(d.getId()))));
+        // 批量取科室名称
+        Map<Long, String> deptNameById = loadDeptNames(page.getRecords());
+        return PageResponse.of(page.convert(d -> toVO(d, phoneByDoctorId.get(d.getId()), deptNameById.get(d.getDepartmentId()))));
     }
 
     public DoctorVO getById(Long id) {
@@ -65,7 +67,7 @@ public class DoctorService {
         if (d == null) {
             throw new BusinessException(404, "医生不存在");
         }
-        return toVO(d, loadPhone(d.getId()));
+        return toVO(d, loadPhone(d.getId()), loadDeptName(d.getDepartmentId()));
     }
 
     /** DOCTOR 查本人（Q11，doctorId 从 token 取）。 */
@@ -119,7 +121,7 @@ public class DoctorService {
         user.setStatus(1);
         sysUserMapper.insert(user);
 
-        return toVO(d, req.getPhone());
+        return toVO(d, req.getPhone(), loadDeptName(d.getDepartmentId()));
     }
 
     /** ADMIN 编辑医生（全字段，但 phone 改写到 sys_user，name 同步 sys_user.username）。 */
@@ -158,7 +160,7 @@ public class DoctorService {
             user.setPhone(req.getPhone());
             sysUserMapper.updateById(user);
         }
-        return toVO(d, req.getPhone());
+        return toVO(d, req.getPhone(), loadDeptName(d.getDepartmentId()));
     }
 
     /** DOCTOR 编辑本人（仅 specialty/avatarUrl/intro，Q11）。 */
@@ -183,7 +185,7 @@ public class DoctorService {
             d.setIntro(req.getIntro());
         }
         doctorMapper.updateById(d);
-        return toVO(d, loadPhone(doctorId));
+        return toVO(d, loadPhone(doctorId), loadDeptName(d.getDepartmentId()));
     }
 
     /**
@@ -222,16 +224,36 @@ public class DoctorService {
         return map;
     }
 
+    /** 批量取科室名称，避免列表 N+1。 */
+    private Map<Long, String> loadDeptNames(List<Doctor> doctors) {
+        if (doctors.isEmpty()) {
+            return Map.of();
+        }
+        List<Long> deptIds = doctors.stream().map(Doctor::getDepartmentId).distinct().toList();
+        List<Department> depts = departmentMapper.selectBatchIds(deptIds);
+        Map<Long, String> map = new HashMap<>();
+        for (Department dept : depts) {
+            map.put(dept.getId(), dept.getName());
+        }
+        return map;
+    }
+
+    private String loadDeptName(Long departmentId) {
+        Department dept = departmentMapper.selectById(departmentId);
+        return dept == null ? null : dept.getName();
+    }
+
     private String loadPhone(Long doctorId) {
         SysUser u = sysUserMapper.selectOne(
                 new LambdaQueryWrapper<SysUser>().eq(SysUser::getDoctorId, doctorId));
         return u == null ? null : u.getPhone();
     }
 
-    private DoctorVO toVO(Doctor d, String phone) {
+    private DoctorVO toVO(Doctor d, String phone, String departmentName) {
         return DoctorVO.builder()
                 .id(d.getId())
                 .departmentId(d.getDepartmentId())
+                .departmentName(departmentName)
                 .name(d.getName())
                 .gender(d.getGender())
                 .birthDate(d.getBirthDate())

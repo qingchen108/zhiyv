@@ -56,6 +56,7 @@ public class DepartmentService {
         d.setHospitalId(HOSPITAL_ID);
         d.setName(req.getName());
         d.setDescription(req.getDescription());
+        d.setLocation(req.getLocation());
         departmentMapper.insert(d);
         return toVO(d);
     }
@@ -68,6 +69,7 @@ public class DepartmentService {
         }
         d.setName(req.getName());
         d.setDescription(req.getDescription());
+        d.setLocation(req.getLocation());
         departmentMapper.updateById(d);
         return toVO(d);
     }
@@ -98,6 +100,7 @@ public class DepartmentService {
                 .hospitalId(d.getHospitalId())
                 .name(d.getName())
                 .description(d.getDescription())
+                .location(d.getLocation())
                 .build();
     }
 }
