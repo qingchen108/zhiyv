@@ -1,33 +1,20 @@
 import { Button, Card, Form, Input, Typography, message } from 'antd';
 import { useRequest } from 'ahooks';
-import { history, useModel } from '@umijs/max';
 import { changePassword } from '@/services/auth';
-import { useAuthStore } from '@/stores/auth';
+import { clearAuthStorage } from '@/stores/auth';
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 
 // 修改密码页（ADR-0005 首登改密）
+// Q15：改密成功后后端吊销该用户全部会话（须用新密码重新登录），故此处清态 + 整页重载回登录页。
 export default function ChangePasswordPage() {
-  const { setInitialState } = useModel('@@initialState');
-
   const { run: onSubmit, loading } = useRequest(
     async (values: { oldPassword: string; newPassword: string }) => {
       await changePassword(values);
-      // 改密成功：库里已置 must_change_password=false（后端 AuthService.changePassword）。
-      // 同步更新本地用户信息（token 不重签，但该字段仅用于前端展示，无害），然后直进系统，不返登录页。
-      const userStr = localStorage.getItem('smartmed_user');
-      if (userStr) {
-        const user = JSON.parse(userStr) as API.CurrentUser;
-        user.mustChangePassword = false;
-        localStorage.setItem('smartmed_user', JSON.stringify(user));
-        useAuthStore.getState().setAuth(localStorage.getItem('smartmed_token')!, user);
-        await setInitialState((s) => ({ ...s, currentUser: user }));
-      }
-      message.success('密码修改成功');
-      // 整页加载进首页：绕过 SPA 路由闭包竞争（同登录页理由）。
-      // 按角色进首页：DOCTOR -> /workspace，ADMIN -> /department
-      const me = JSON.parse(localStorage.getItem('smartmed_user') || '{}') as API.CurrentUser;
-      window.location.href = me.role === 'DOCTOR' ? '/workspace' : '/department';
+      message.success('密码修改成功，请重新登录');
+      // 后端已吊销全部会话：清前端登录态 + 整页重载回登录（彻底脱离布局）
+      clearAuthStorage();
+      window.location.href = '/login';
     },
     {
       manual: true,
@@ -38,9 +25,12 @@ export default function ChangePasswordPage() {
   return (
     <div style={{ maxWidth: 480, margin: '48px auto' }}>
       <Card>
-        <Title level={4} style={{ marginBottom: 24 }}>
+        <Title level={4} style={{ marginBottom: 4 }}>
           修改密码
         </Title>
+        <Text type="secondary" style={{ display: 'block', marginBottom: 24 }}>
+          修改成功后需使用新密码重新登录
+        </Text>
         <Form layout="vertical" onFinish={onSubmit} autoComplete="off">
           <Form.Item label="旧密码" name="oldPassword" rules={[{ required: true, message: '请输入旧密码' }]}>
             <Input.Password placeholder="旧密码" autoComplete="current-password" autoFocus />

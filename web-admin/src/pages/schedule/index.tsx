@@ -319,11 +319,18 @@ function CalendarTab() {
               showSearch
               optionFilterProp="label"
               options={doctorData?.records?.map((d: API.Doctor) => ({ value: d.id, label: `${d.name}（${d.title || ''}）` }))}
+              onChange={(doctorId) => {
+                const doctor = doctorData?.records?.find((d: API.Doctor) => d.id === doctorId);
+                if (doctor) {
+                  form.setFieldsValue({ departmentId: doctor.departmentId });
+                }
+              }}
             />
           </Form.Item>
           <Form.Item label="科室" name="departmentId" rules={[{ required: true, message: '请选择科室' }]}>
             <Select
-              placeholder="选择科室"
+              placeholder="选择医生后自动填充"
+              disabled
               options={deptData?.records?.map((d: API.Department) => ({ value: d.id, label: d.name }))}
             />
           </Form.Item>

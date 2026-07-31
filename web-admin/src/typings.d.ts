@@ -12,6 +12,17 @@ declare namespace API {
     mustChangePassword?: boolean;
   }
 
+  // 登录/刷新响应（ADR-0013：access + refresh 双 token）
+  interface LoginResult {
+    token: string;
+    refreshToken: string;
+    role: 'ADMIN' | 'DOCTOR';
+    doctorId?: number;
+    expiresIn: number;
+    refreshExpiresIn: number;
+    mustChangePassword: boolean;
+  }
+
   // 统一响应 { code, message, data }
   interface Result<T = any> {
     code: number;
@@ -33,12 +44,14 @@ declare namespace API {
     hospitalId?: number;
     name: string;
     description?: string;
+    location?: string;
   }
 
   // 医生
   interface Doctor {
     id: number;
     departmentId: number;
+    departmentName?: string;
     name: string;
     gender?: string;
     birthDate?: string;

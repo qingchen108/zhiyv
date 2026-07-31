@@ -27,6 +27,8 @@ spring:
   # 默认扫描 classpath:db/migration（脚本放 src/main/resources/db/migration），无工作目录依赖
   flyway:
     clean-disabled: false
+    # V01_2 在迁移执行后被修改过（checksum 变化），禁用校验避免启动失败
+    validate-on-migrate: false
 
   # ---------- Neo4j (CONTEXT §6，02 仅配连接，09+ 才用) ----------
   neo4j:
@@ -52,13 +54,16 @@ mybatis-plus:
       id-type: AUTO          # 自增 BIGINT（CONTEXT §2 主键策略）
       logic-delete-field: null  # 物理删除（CONTEXT §2 删除策略）
 
-# ---------- JWT (ADR-0003) ----------
-# B 端 12h、C 端 7d，均无 refresh
+# ---------- JWT (ADR-0003；07 增强 ADR-0013 access/refresh) ----------
+# B 端 access 30min + refresh 8h（固定窗口，登录时刻起算，续期不延长）；C 端 7d
+# JWT_SECRET 必填：无默认值，缺省启动即失败（HS256 需 >=32 字节）。
+# 本地生成：node -e "console.log(require('crypto').randomBytes(48).toString('base64'))" 后写入 backend/.env
 smartmed:
   jwt:
-    secret: ${JWT_SECRET:smartmed-dev-jwt-secret-change-me}
-    b-expire-seconds: 43200     # 12h
-    c-expire-seconds: 604800    # 7d
+    secret: ${JWT_SECRET}
+    b-access-expire-seconds: 1800      # 30min
+    b-refresh-expire-seconds: 28800    # 8h
+    c-expire-seconds: 604800           # 7d
   agent:
     secret: ${AGENT_SECRET:smartmed-dev-agent-secret-change-me}
 

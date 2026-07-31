@@ -12,16 +12,20 @@ import org.springframework.stereotype.Component;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.UUID;
 
 /**
- * JWT 签发与解析（ADR-0003：jjwt + HS256）。
+ * JWT 签发与解析（ADR-0003：jjwt + HS256；07 增强：access/refresh 分离）。
  * <p>
- * 单种 JWT + {@code typ} 声明区分端别：
+ * B 端双 token 机制（ADR-0013）：
  * <ul>
- *   <li>B 端：{@code sub=sys_user.id, typ=B, role, doctor_id?}，过期 12h</li>
- *   <li>C 端：{@code sub=patient.id, typ=C}，过期 7d</li>
+ *   <li><b>access</b>：{@code typ=B}，{@code sub=sys_user.id, role, doctor_id, jti, refresh_jti, absolute_exp}，
+ *       默认有效期 30min（b-access-expire-seconds）。{@code absolute_exp} 为固定 8h 窗口的绝对截止时刻，
+ *       由会话创建时决定、续期不延长（Q12 固定窗口）。</li>
+ *   <li><b>refresh</b>：{@code typ=B_RT}，{@code sub=sys_user.id, rjti}，默认有效期 8h（b-refresh-expire-seconds）。
+ *       仅用于换发 access；Redis 存储 + 轮换 + 重用检测（RefreshTokenService）。</li>
+ *   <li>C 端 demo-login 维持单 token（{@code typ=C}），不接入 refresh（Q14：仅 B 端）。</li>
  * </ul>
- * 均无 refresh token。
  */
 @Slf4j
 @Component
@@ -29,12 +33,17 @@ public class JwtTokenProvider {
 
     public static final String TYP_B = "B";
     public static final String TYP_C = "C";
+    /** refresh token 的 typ 声明（区别于 access 的 typ=B）。 */
+    public static final String TYP_B_RT = "B_RT";
 
     @Value("${smartmed.jwt.secret}")
     private String secret;
 
-    @Value("${smartmed.jwt.b-expire-seconds}")
-    private long bExpireSeconds;
+    @Value("${smartmed.jwt.b-access-expire-seconds}")
+    private long bAccessExpireSeconds;
+
+    @Value("${smartmed.jwt.b-refresh-expire-seconds}")
+    private long bRefreshExpireSeconds;
 
     @Value("${smartmed.jwt.c-expire-seconds}")
     private long cExpireSeconds;
@@ -51,10 +60,23 @@ public class JwtTokenProvider {
         this.key = Keys.hmacShaKeyFor(bytes);
     }
 
-    /** 签发 B 端 token。doctorId 为 null 时（ADMIN）不写入 claim。mustChangePassword 写入供 /me 零 DB 回读（ADR-0005）。 */
-    public String issueBToken(Long userId, String username, String role, Long doctorId, boolean mustChangePassword) {
-        long now = System.currentTimeMillis();
-        long exp = now + bExpireSeconds * 1000;
+    /**
+     * 签发 B 端 access token。
+     *
+     * @param userId        sys_user.id
+     * @param username      用户名
+     * @param role          ADMIN / DOCTOR
+     * @param doctorId      医生 ID，ADMIN 传 null
+     * @param mustChangePassword 首登改密标志
+     * @param jti           access token 唯一 ID（吊销会话时按 refresh_jti 查 Redis，jti 本身用于标识）
+     * @param refreshJti    所属会话（refresh token）的 rjti
+     * @param absoluteExp   固定会话窗口的绝对截止时刻（epoch ms，登录时刻 + 8h）
+     * @param now           签发时刻（epoch ms），用于统一 now/exp 的取值，避免时钟抖动
+     */
+    public String issueAccessToken(Long userId, String username, String role, Long doctorId,
+                                   boolean mustChangePassword, String jti, String refreshJti,
+                                   long absoluteExp, long now) {
+        long exp = now + bAccessExpireSeconds * 1000;
         return Jwts.builder()
                 .subject(String.valueOf(userId))
                 .claim("typ", TYP_B)
@@ -62,13 +84,37 @@ public class JwtTokenProvider {
                 .claim("username", username)
                 .claim("doctor_id", doctorId)
                 .claim("must_change_password", mustChangePassword)
+                .claim("jti", jti)
+                .claim("refresh_jti", refreshJti)
+                .claim("absolute_exp", absoluteExp)
                 .issuedAt(new Date(now))
                 .expiration(new Date(exp))
                 .signWith(key)
                 .compact();
     }
 
-    /** 签发 C 端 token。 */
+    /**
+     * 签发 B 端 refresh token。{@code typ=B_RT}、携带 {@code rjti}，有效期 8h。
+     * 存储/轮换/吊销交由 RefreshTokenService（Redis）负责。
+     */
+    public String issueRefreshToken(Long userId, String rjti, long now) {
+        long exp = now + bRefreshExpireSeconds * 1000;
+        return Jwts.builder()
+                .subject(String.valueOf(userId))
+                .claim("typ", TYP_B_RT)
+                .claim("rjti", rjti)
+                .issuedAt(new Date(now))
+                .expiration(new Date(exp))
+                .signWith(key)
+                .compact();
+    }
+
+    /** 生成一个随机的 jti/rjti。 */
+    public String newId() {
+        return UUID.randomUUID().toString().replace("-", "");
+    }
+
+    /** 签发 C 端 token（demo-login，7d）。 */
     public String issueCToken(Long patientId) {
         long now = System.currentTimeMillis();
         long exp = now + cExpireSeconds * 1000;
@@ -81,9 +127,14 @@ public class JwtTokenProvider {
                 .compact();
     }
 
-    /** B 端过期秒数（供登录响应 expiresIn 字段）。 */
-    public long getBExpireSeconds() {
-        return bExpireSeconds;
+    /** B 端 access 过期秒数（供登录/刷新响应 expiresIn 字段）。 */
+    public long getBAccessExpireSeconds() {
+        return bAccessExpireSeconds;
+    }
+
+    /** B 端 refresh 过期秒数（供前端过期判定）。 */
+    public long getBRefreshExpireSeconds() {
+        return bRefreshExpireSeconds;
     }
 
     /** C 端过期秒数（供 demo-login 响应 expiresIn 字段）。 */
@@ -92,7 +143,8 @@ public class JwtTokenProvider {
     }
 
     /**
-     * 解析并校验 token。失败返回 null（由调用方决定写 401）。
+     * 解析并校验 token（access 与 refresh 共用）。
+     * 失败返回 null（由调用方决定写 401）。
      */
     public UserPrincipal parse(String token) {
         try {
@@ -109,6 +161,9 @@ public class JwtTokenProvider {
                 Object did = c.get("doctor_id");
                 Long doctorId = did == null ? null : Long.valueOf(did.toString());
                 Boolean mustChange = c.get("must_change_password", Boolean.class);
+                String jti = c.get("jti", String.class);
+                String refreshJti = c.get("refresh_jti", String.class);
+                Long absoluteExp = c.get("absolute_exp", Long.class);
                 return UserPrincipal.builder()
                         .typ(TYP_B)
                         .userId(userId)
@@ -116,6 +171,9 @@ public class JwtTokenProvider {
                         .role(role)
                         .doctorId(doctorId)
                         .mustChangePassword(mustChange != null && mustChange)
+                        .jti(jti)
+                        .refreshJti(refreshJti)
+                        .absoluteExpiresAt(absoluteExp)
                         .build();
             }
             if (TYP_C.equals(typ)) {
@@ -123,6 +181,15 @@ public class JwtTokenProvider {
                         .typ(TYP_C)
                         .userId(userId)
                         .patientId(userId)
+                        .build();
+            }
+            if (TYP_B_RT.equals(typ)) {
+                // refresh token：仅携带 sub + rjti，role 等会话数据由 RefreshTokenService 从 Redis 读
+                String rjti = c.get("rjti", String.class);
+                return UserPrincipal.builder()
+                        .typ(TYP_B_RT)
+                        .userId(userId)
+                        .rjti(rjti)
                         .build();
             }
             log.warn("未知 typ: {}", typ);

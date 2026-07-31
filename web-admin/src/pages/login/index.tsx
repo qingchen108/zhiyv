@@ -18,15 +18,16 @@ export default function LoginPage() {
       if (!res || res.code !== 200 || !res.data) {
         throw new Error(res?.message || '登录失败');
       }
-      const { token, mustChangePassword } = res.data;
-      // 先存 token，再拉 /me 拿用户信息（mustChangePassword 也在 /me）
-      localStorage.setItem('smartmed_token', token);
+      const { token, refreshToken, mustChangePassword } = res.data;
+      // 先持久化 refresh + 内存 access，再拉 /me 拿用户信息（mustChangePassword 也在 /me）
+      localStorage.setItem('smartmed_refresh_token', refreshToken);
+      useAuthStore.getState().setAccessToken(token);
       const meRes = await getMe();
       if (!meRes || meRes.code !== 200 || !meRes.data) {
         throw new Error(meRes?.message || '获取用户信息失败');
       }
       const user = meRes.data;
-      useAuthStore.getState().setAuth(token, user);
+      useAuthStore.getState().setAuth(token, refreshToken, user);
       await setInitialState((s) => ({ ...s, currentUser: user }));
 
       if (mustChangePassword) {

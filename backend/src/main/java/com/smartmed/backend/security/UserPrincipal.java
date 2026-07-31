@@ -35,6 +35,14 @@ public class UserPrincipal implements UserDetails {
     private final String username;
     /** 首登改密标志（B 端，ADR-0005）。 */
     private final boolean mustChangePassword;
+    /** access token 的唯一 ID（ADR-0013；随 access 签发，吊销按 refresh_jti 查会话）。 */
+    private final String jti;
+    /** 所属会话（refresh token）的 rjti（ADR-0013）。 */
+    private final String refreshJti;
+    /** refresh token 自身的 rjti（typ=B_RT 时；ADR-0013）。 */
+    private final String rjti;
+    /** 固定会话窗口的绝对截止时刻（epoch ms，登录时刻 + 8h，ADR-0013）。 */
+    private final Long absoluteExpiresAt;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

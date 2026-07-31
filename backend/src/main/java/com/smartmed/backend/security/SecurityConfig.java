@@ -20,8 +20,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
  * <p>
  * 单条 SecurityFilterChain，路径分权：
  * <ul>
- *   <li>{@code /api/auth/**}、{@code /api/health} 公开</li>
- *   <li>{@code /api/b/**} 需 typ=B（角色由 @PreAuthorize 补充）</li>
+ *   <li>{@code /api/auth/**}、{@code /api/b/auth/refresh}、{@code /api/health} 公开</li>
+ *   <li>{@code /api/b/**} 需 typ=B（角色由 @PreAuthorize 补充）；refresh 需 typ=B_RT，在 AuthService 内解析</li>
  *   <li>{@code /api/c/**} 需 typ=C</li>
  *   <li>{@code /api/agent/tools/**} 02 阶段直接 401（不带 X-Agent-Secret 一律拒），09+ 再加 secret 校验</li>
  *   <li>其他拒绝</li>
@@ -50,8 +50,8 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // 公开端点：B 端登录、C 端 demo-login、健康检查
-                        .requestMatchers("/api/auth/**", "/api/c/auth/demo-login", "/api/health").permitAll()
+                        // 公开端点：B 端登录、refresh 换发（无 access token，靠 refresh token 自身）、C 端 demo-login、健康检查
+                        .requestMatchers("/api/auth/**", "/api/b/auth/refresh", "/api/c/auth/demo-login", "/api/health").permitAll()
                         // Agent 网关：02 阶段直接拒绝（不带 X-Agent-Secret 一律 401），09+ 接手再加 secret 校验
                         // denyAll 触发 AuthenticationEntryPoint -> 写 401（见下方 entryPoint）
                         .requestMatchers("/api/agent/tools/**").denyAll()

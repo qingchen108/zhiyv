@@ -33,6 +33,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider tokenProvider;
     private final GlobalExceptionHandler exceptionHandler;
+    private final RefreshTokenService refreshTokenService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -43,6 +44,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             String token = header.substring(7);
             UserPrincipal principal = tokenProvider.parse(token);
             if (principal != null) {
+                // ADR-0013 实时吊销：B 端 access token 需所属会话（refresh_jti）仍在 Redis。
+                // logout / 改密 / 重用检测 后立即失效，而非等 30min 自然过期。
+                if (JwtTokenProvider.TYP_B.equals(principal.getTyp())
+                        && !refreshTokenService.isSessionActive(principal.getRefreshJti())) {
+                    exceptionHandler.writeJson(response, Result.error(401, UNAUTHENTICATED_MSG));
+                    return;
+                }
                 UsernamePasswordAuthenticationToken auth =
                         new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());
                 auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
@@ -63,12 +71,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     }
 
     /**
-     * 判断是否为受保护端点（需 token 的 B/C 端路径）。
-     * 与 SecurityConfig 的公开 matcher 保持一致：排除 /api/c/auth/demo-login。
+     * 判断是否为受保护端点（需 access token 的 B/C 端路径）。
+     * 与 SecurityConfig 的公开 matcher 保持一致：排除 /api/c/auth/demo-login、/api/b/auth/refresh。
      */
     private boolean isProtected(HttpServletRequest request) {
         String path = request.getRequestURI();
-        if ("/api/c/auth/demo-login".equals(path)) {
+        if ("/api/c/auth/demo-login".equals(path) || "/api/b/auth/refresh".equals(path)) {
             return false;
         }
         return path.startsWith("/api/b/") || path.startsWith("/api/c/");

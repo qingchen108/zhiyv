@@ -7,7 +7,8 @@ export default defineConfig({
   // 菜单分流：ADMIN 看管理菜单，DOCTOR 看工作台菜单（06 ticket Q19）
   // 首页 '/' 不在此 redirect，由 src/app.ts 的 onPageChange 按角色跳转（ADMIN->/department, DOCTOR->/workspace）
   routes: [
-    { path: '/login', component: 'login', title: '登录' },
+    // /login 独立页：layout:false 脱离全局布局（Q1 退出后/未登录时无菜单无顶栏）
+    { path: '/login', component: 'login', title: '登录', layout: false },
     // 注意：不套自定义 layout 路由层（@/layouts/index）。Umi Max layout 插件已提供 ant-design-pro-layout 布局，
     // 多套一层 isLayout 的 global-layout 会导致 Layout.tsx 的 filterRoutes 无法提升 children，侧边栏菜单为空。
     // 页面路由直接平铺在此，由 layout 插件自动包裹。
@@ -23,9 +24,11 @@ export default defineConfig({
     { path: '/schedule', name: '排班管理', component: 'schedule', access: 'isAdmin' },
     { path: '/drug', name: '药品管理', component: 'drug', access: 'isAdmin' },
     // ===== 共用 =====
-    { path: '/change-password', name: '修改密码', component: 'changePassword', access: 'loggedIn' },
+    { path: '/change-password', name: '修改密码', component: 'changePassword', access: 'loggedIn', hideInMenu: true },
     // 根路径占位，实际跳转由 onPageChange 处理（避免 redirect 覆盖角色判断）
     { path: '/', redirect: '/department' },
+    // 兜底 404（Q3：手滑输错 URL 不再白屏）
+    { path: '/*', component: '404', hideInMenu: true },
   ],
   // AntD 主题 token（MASTER.md：青色系 + 健康绿 + Figtree/Noto Sans）
   antd: {
