@@ -65,7 +65,7 @@
 | 意图集（Intent） | 6 类：triage / registration / consultation / pharmacy / reminder / general（闲聊兜底），与 ticket 11-14 能力域一一对应；emotion 为旁路能力（影响语气），不单独成意图 |
 | 图结构 | LangGraph StateGraph + 条件边（router → 各意图节点 → 汇聚），09 起预留意图节点插槽，后续 ticket 只填空不改骨架 |
 | 意图路由 | 09 阶段真实 LLM 分类（验证分类质量），分类结果仅决定 prompt 模板，不触发工具调用 |
-| LLM 接入 | 统一 OpenAI-compatible 接口（ChatOpenAI + base_url/api_key/model 三变量切换），不引入各家 SDK；不做 fallback，启动时连通性校验失败即清晰报错 |
+| LLM 接入 | 统一 Anthropic Messages API 协议（ChatAnthropic + base_url/api_key/model 三变量切换，火山方舟 coding 端点实测仅兼容 Anthropic 协议，OpenAI 路径 404）；不引入各家 SDK；不做 fallback，启动时连通性校验失败即清晰报错 |
 | 流式生成 | `astream_events` 产出 token 增量，映射为 SSE `delta` 事件 |
 | 工具清单 | 11 个：查询类 7（query_departments / query_doctors / query_schedule / query_knowledge_graph / get_medical_record / get_prescription / query_pharmacy_stock）+ 动作类 4（create_registration_draft / write_pre_diagnosis / create_order_draft / create_reminder）；confirm 类（挂号确认/下单确认）不入 Agent 工具集，前端凭卡片 action 直调 Java |
 | 工具边界 | Agent 仅能创建草稿，永远不能替用户完成挂号/下单；卡片 payload 数据源为 Java 草稿响应权威 JSON，LLM 在确认链路中零参与 |

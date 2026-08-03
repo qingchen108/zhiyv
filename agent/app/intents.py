@@ -8,7 +8,6 @@ import logging
 from typing import Any, Awaitable, Callable, Literal
 
 from langchain_core.language_models.chat_models import BaseChatModel
-from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
@@ -39,10 +38,28 @@ MOCK_REPLIES: dict[str, str] = {
 }
 
 
-class IntentResult(BaseModel):
-    """意图分类的结构化输出（OpenAI-compatible structured output）。"""
+def _extract_intent(content: Any) -> str:
+    """从 LLM 响应提取意图词，兼容 str 与 thinking 模型块列表。
 
-    intent: Intent
+    doubao-seed-2.1-turbo 是 thinking 模型：content 为 [{'type': 'thinking', ...},
+    {'type': 'text', 'text': 'triage'}] 块列表；非 thinking 模型为纯字符串。
+    统一取 text 块（或字符串本身）后做包含匹配，未命中返回 general。
+    """
+    if isinstance(content, str):
+        text = content
+    elif isinstance(content, list):
+        text = " ".join(
+            block.get("text", "") if isinstance(block, dict) else str(block)
+            for block in content
+        )
+    else:
+        text = str(content)
+    lowered = text.lower()
+    for intent in INTENTS:
+        if intent in lowered:
+            return intent
+    logger.warning("意图分类结果无法解析，兜底 general: content=%r", content)
+    return "general"
 
 
 def build_router(llm: BaseChatModel) -> Callable[[list[dict[str, str]]], Awaitable[str]]:
@@ -50,23 +67,24 @@ def build_router(llm: BaseChatModel) -> Callable[[list[dict[str, str]]], Awaitab
 
     返回 async 函数：输入消息列表，输出意图名。分类失败（网络/解析）记录日志并兜底 general，
     不让一次分类失败拖垮整个对话。
+    火山方舟 coding 端点不支持结构化输出（tool calling 不稳定 / json_schema 无效），
+    故用 prompt 要求输出意图词 + 本地匹配解析。
     """
-    structured = llm.with_structured_output(IntentResult)
 
     async def route(messages: list[dict[str, str]]) -> str:
         try:
-            res = await structured.ainvoke([
+            res = await llm.ainvoke([
                 {
                     "role": "system",
                     "content": (
-                        "你是智愈医疗助手的意图分类器。只输出以下意图之一：\n"
+                        "你是智愈医疗助手的意图分类器。只输出一个英文意图词，不要输出其他内容：\n"
                         f"{_INTENT_LIST_PROMPT}\n"
                         "分类依据用户最新消息的诉求，历史消息仅供参考。"
                     ),
                 },
                 *messages,
             ])
-            return res.intent if res.intent in INTENTS else "general"
+            return _extract_intent(res.content)
         except Exception as e:  # noqa: BLE001 —— 分类失败兜底 general
             logger.warning("意图分类失败，兜底 general: %s", e)
             return "general"

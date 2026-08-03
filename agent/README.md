@@ -37,7 +37,7 @@ pytest
 - `app/main.py` - FastAPI 入口: /agent/chat + SSE 流
 - `app/graph.py` - LangGraph 状态机骨架 (router → 意图节点)
 - `app/intents.py` - 意图集 (6 类) + LLM 意图路由 + mock 意图节点
-- `app/llm.py` - 统一 OpenAI-compatible 接入 (三变量切换) + 启动连通性校验
+- `app/llm.py` - 统一 Anthropic Messages API 接入 (三变量切换, 火山方舟 coding 端点) + 启动连通性校验
 - `app/sse.py` - SSE 事件序列化 (5 事件协议)
 - `app/security.py` - X-Agent-Secret 双向鉴权
 - `tools/tools.json` - 11 个工具契约**单一来源** (Java 侧按此实现, 见 CONTEXT §5)

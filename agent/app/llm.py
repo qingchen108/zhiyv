@@ -1,14 +1,15 @@
 """LLM 接入层（09 ticket，CONTEXT §5）。
 
-统一 OpenAI-compatible 接口：ChatOpenAI + base_url/api_key/model 三变量切换，
+统一 Anthropic Messages API 协议：ChatAnthropic + base_url/api_key/model 三变量切换，
 不引入各家 SDK；不做 fallback（演示项目无高可用需求）。
+火山方舟 coding 端点仅兼容 Anthropic 协议（OpenAI 路径不存在，实测 404）。
 """
 
 import logging
 from typing import Any
 
 from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_openai import ChatOpenAI
+from langchain_anthropic import ChatAnthropic
 
 from app.config import get_settings
 
@@ -18,20 +19,24 @@ logger = logging.getLogger(__name__)
 _PROBE_MESSAGE = [{"role": "user", "content": "ping"}]
 
 
+MAX_TOKENS = 1024  # Anthropic API 强制要求 max_tokens 参数（必填）
+
+
 def build_chat_model() -> BaseChatModel:
-    """按环境变量构建 ChatOpenAI 实例（LLM_BASE_URL / LLM_API_KEY / LLM_MODEL 三变量切换）。"""
+    """按环境变量构建 ChatAnthropic 实例（LLM_BASE_URL / LLM_API_KEY / LLM_MODEL 三变量切换）。"""
     settings = get_settings()
     if not settings.llm_base_url or not settings.llm_api_key or not settings.llm_model:
         raise RuntimeError(
             "LLM 未配置完整：LLM_BASE_URL / LLM_API_KEY / LLM_MODEL 三者必填。"
             "请复制 agent/.env.example 为 agent/.env 后填入真实值（AGENT_ECHO_MODE=true 可跳过）"
         )
-    return ChatOpenAI(
+    return ChatAnthropic(
         model=settings.llm_model,
         api_key=settings.llm_api_key,
         base_url=settings.llm_base_url,
         temperature=0,
         timeout=60,
+        max_tokens=MAX_TOKENS,
     )
 
 

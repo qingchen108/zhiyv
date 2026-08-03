@@ -1,14 +1,14 @@
 """意图路由测试（09 ticket）。
 
 - 注入 fake router：验证 StateGraph 条件边把每个意图路由到对应节点并返回 mock 回复
-- 真实 router 构建：验证结构化输出解析、未知意图兜底 general、LLM 异常兜底 general
+- 真实 router 构建：验证意图词解析（str 与 thinking 块列表）、未知意图兜底 general、LLM 异常兜底 general
 """
 
 import pytest
 from types import SimpleNamespace
 
 from app.graph import AgentState, build_graph
-from app.intents import INTENTS, IntentResult, MOCK_REPLIES, build_intent_node, build_router
+from app.intents import INTENTS, MOCK_REPLIES, build_intent_node, build_router
 
 MESSAGES = [{"role": "user", "content": "我头疼"}]
 
@@ -30,18 +30,17 @@ async def test_graph_routes_to_correct_intent_node(intent):
 
 
 class FakeLLM:
-    """模拟 ChatOpenAI：with_structured_output 返回自身，ainvoke 由子类决定。"""
+    """模拟 LLM：ainvoke 由子类决定（路由只用 ainvoke + content）。"""
 
-    def with_structured_output(self, schema):
-        return self
+    pass
 
 
 class ReturningLLM(FakeLLM):
-    def __init__(self, result):
-        self._result = result
+    def __init__(self, content):
+        self._content = content
 
     async def ainvoke(self, _messages):
-        return self._result
+        return SimpleNamespace(content=self._content)
 
 
 class BrokenLLM(FakeLLM):
@@ -50,13 +49,23 @@ class BrokenLLM(FakeLLM):
 
 
 async def test_router_returns_parsed_intent():
-    router = build_router(ReturningLLM(IntentResult(intent="triage")))
+    router = build_router(ReturningLLM("triage"))
     assert await router(MESSAGES) == "triage"
 
 
+async def test_router_parses_thinking_block_list():
+    """thinking 模型返回块列表时，从 text 块提取意图词。"""
+    content = [
+        {"type": "thinking", "thinking": "用户想挂号", "signature": "sig"},
+        {"type": "text", "text": "registration"},
+    ]
+    router = build_router(ReturningLLM(content))
+    assert await router(MESSAGES) == "registration"
+
+
 async def test_router_unknown_intent_falls_back_to_general():
-    """LLM 返回未定义意图名时兜底 general（绕过 pydantic 构造，模拟结构化输出返回任意值）。"""
-    router = build_router(ReturningLLM(SimpleNamespace(intent="hacking")))
+    """LLM 返回未定义意图词时兜底 general。"""
+    router = build_router(ReturningLLM("hacking"))
     assert await router(MESSAGES) == "general"
 
 

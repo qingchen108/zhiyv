@@ -1,7 +1,7 @@
 """SmartMed Agent 服务配置（09 ticket，CONTEXT §5）。
 
 环境变量以 agent/.env.example 为准，pydantic-settings 读取 agent/.env（从 agent/ 目录启动）。
-LLM 统一 OpenAI-compatible 接口：仅 LLM_BASE_URL / LLM_API_KEY / LLM_MODEL 三变量切换，不引入各家 SDK。
+LLM 统一 Anthropic Messages API 协议（火山方舟 coding 端点）：仅 LLM_BASE_URL / LLM_API_KEY / LLM_MODEL 三变量切换，不引入各家 SDK。
 """
 
 from functools import lru_cache
@@ -16,7 +16,7 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    # ---------- LLM（统一 OpenAI-compatible） ----------
+    # ---------- LLM（统一 Anthropic Messages API，火山方舟 coding 端点） ----------
     llm_api_key: str = ""
     llm_base_url: str = ""
     llm_model: str = ""
