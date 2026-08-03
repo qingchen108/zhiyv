@@ -1,0 +1,101 @@
+.page-prescs {
+  background: #f5f5f5;
+  min-height: 100vh;
+  padding-bottom: 24px;
+}
+
+/* 列表 */
+.presc-list {
+  padding: 12px;
+}
+
+.presc-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 12px;
+}
+
+.presc-card-header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.presc-no {
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+}
+
+.presc-status {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.presc-status-ACTIVE {
+  color: #52c41a;
+}
+
+.presc-status-REVOKED {
+  color: #999;
+}
+
+.presc-card-body {
+  border-top: 1px solid #f0f0f0;
+  padding-top: 10px;
+}
+
+.presc-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.presc-row:last-child {
+  margin-bottom: 0;
+}
+
+.presc-label {
+  font-size: 13px;
+  color: #999;
+  flex-shrink: 0;
+  margin-right: 12px;
+}
+
+.presc-value {
+  font-size: 13px;
+  color: #333;
+  text-align: right;
+}
+
+.presc-drugs {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 空态/加载尾 */
+.list-empty {
+  padding: 60px 0;
+  text-align: center;
+}
+
+.list-empty-text {
+  font-size: 14px;
+  color: #999;
+}
+
+.list-footer {
+  text-align: center;
+  padding: 12px 0;
+}
+
+.list-footer-text {
+  font-size: 12px;
+  color: #ccc;
+}

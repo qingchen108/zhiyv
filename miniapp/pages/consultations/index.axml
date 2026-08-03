@@ -1,0 +1,41 @@
+<view class="page-consults">
+  <!-- 列表 -->
+  <view class="consult-list">
+    <view
+      class="consult-card"
+      a:for="{{records}}"
+      a:key="id"
+      data-id="{{item.id}}"
+      onTap="goDetail"
+    >
+      <view class="consult-card-header">
+        <view class="consult-no">
+          <text class="consult-no-label">问诊单号</text>
+          <text class="consult-no-value">{{item.regNo}}</text>
+        </view>
+        <text class="consult-status consult-status-{{item.status}}">{{statusText(item.status)}}</text>
+      </view>
+      <view class="consult-card-body">
+        <view class="consult-row">
+          <text class="consult-label">医生</text>
+          <text class="consult-value">{{item.doctorName}} · {{item.departmentName}}</text>
+        </view>
+        <view class="consult-row">
+          <text class="consult-label">就诊时间</text>
+          <text class="consult-value">{{item.scheduleDate}} {{periodText(item.timePeriod)}}</text>
+        </view>
+        <view class="consult-row consult-row-diagnosis" a:if="{{item.diagnosis}}">
+          <text class="consult-label">诊断</text>
+          <text class="consult-value consult-diagnosis">{{item.diagnosis}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="list-empty" a:if="{{records.length === 0 && !loading}}">
+      <text class="list-empty-text">暂无问诊记录</text>
+    </view>
+    <view class="list-footer" a:if="{{records.length > 0}}">
+      <text class="list-footer-text">{{finished ? '没有更多了' : '加载中...'}}</text>
+    </view>
+  </view>
+</view>

@@ -265,12 +265,24 @@ public class RegistrationService {
 
     // ==================== 查询 ====================
 
-    public PageResponse<RegistrationVO> page(Long patientId, long pageNum, long pageSize, String status) {
+    /**
+     * 挂号列表（按状态筛选，分页）。
+     *
+     * @param familyMemberId 实际就诊人（0/空 → 本人就诊；>0 → 该成员；null → 全部，兼容旧调用）
+     */
+    public PageResponse<RegistrationVO> page(Long patientId, long pageNum, long pageSize, String status, Long familyMemberId) {
         Page<Registration> page = new Page<>(pageNum, pageSize);
         LambdaQueryWrapper<Registration> qw = new LambdaQueryWrapper<Registration>()
                 .eq(Registration::getPatientId, patientId)
-                .eq(status != null && !status.isBlank(), Registration::getStatus, status)
-                .orderByDesc(Registration::getCreatedAt);
+                .eq(status != null && !status.isBlank(), Registration::getStatus, status);
+        if (familyMemberId != null && familyMemberId > 0) {
+            // 指定成员：family_member_id = ?
+            qw.eq(Registration::getFamilyMemberId, familyMemberId);
+        } else if (familyMemberId != null) {
+            // 本人：family_member_id IS NULL（ADR-0010 口径）
+            qw.isNull(Registration::getFamilyMemberId);
+        }
+        qw.orderByDesc(Registration::getCreatedAt);
         Page<Registration> result = registrationMapper.selectPage(page, qw);
 
         var voList = result.getRecords().stream().map(this::toVO).toList();

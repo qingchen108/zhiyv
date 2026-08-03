@@ -1,0 +1,38 @@
+<view class="page-orders">
+  <!-- 列表 -->
+  <view class="order-list">
+    <view
+      class="order-card"
+      a:for="{{records}}"
+      a:key="id"
+      data-id="{{item.id}}"
+      onTap="goDetail"
+    >
+      <view class="order-card-header">
+        <text class="order-no">订单 #{{item.id}}</text>
+        <text class="order-status order-status-{{item.status}}">{{statusText(item.status)}}</text>
+      </view>
+      <view class="order-card-body">
+        <view class="order-row">
+          <text class="order-label">药店</text>
+          <text class="order-value">{{item.pharmacyName}}</text>
+        </view>
+        <view class="order-row">
+          <text class="order-label">下单时间</text>
+          <text class="order-value">{{item.createdAt}}</text>
+        </view>
+        <view class="order-row">
+          <text class="order-label">金额</text>
+          <text class="order-value order-amount">¥{{amountText(item.totalAmount)}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="list-empty" a:if="{{records.length === 0 && !loading}}">
+      <text class="list-empty-text">暂无购药订单</text>
+    </view>
+    <view class="list-footer" a:if="{{records.length > 0}}">
+      <text class="list-footer-text">{{finished ? '没有更多了' : '加载中...'}}</text>
+    </view>
+  </view>
+</view>

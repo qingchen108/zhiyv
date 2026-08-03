@@ -1,0 +1,64 @@
+<view class="page-presc-detail">
+  <!-- 加载中 -->
+  <view class="detail-loading" a:if="{{!record}}">
+    <text class="detail-loading-text">加载中...</text>
+  </view>
+
+  <block a:if="{{record}}">
+    <!-- 状态头 -->
+    <view class="detail-header detail-header-{{record.status}}">
+      <text class="detail-status">处方 #{{record.id}}</text>
+      <text class="detail-status-sub">{{statusText(record.status)}}</text>
+    </view>
+
+    <!-- 处方信息 -->
+    <view class="detail-card">
+      <view class="detail-card-title">处方信息</view>
+      <view class="detail-row">
+        <text class="detail-label">开方医生</text>
+        <text class="detail-value">{{record.doctorName}}</text>
+      </view>
+      <view class="detail-row">
+        <text class="detail-label">开方日期</text>
+        <text class="detail-value">{{record.createdAt}}</text>
+      </view>
+      <view class="detail-row">
+        <text class="detail-label">诊断</text>
+        <text class="detail-value">{{record.diagnosis}}</text>
+      </view>
+      <view class="detail-row" a:if="{{record.advice}}">
+        <text class="detail-label">医嘱</text>
+        <text class="detail-value">{{record.advice}}</text>
+      </view>
+    </view>
+
+    <!-- 药品明细 -->
+    <view class="detail-card">
+      <view class="detail-card-title">药品明细</view>
+      <view class="drug-item" a:for="{{record.items}}" a:key="id">
+        <view class="drug-item-header">
+          <text class="drug-name">{{item.drugName}}</text>
+        </view>
+        <view class="drug-row" a:if="{{item.usageMethod}}">
+          <text class="drug-label">用法</text>
+          <text class="drug-value">{{item.usageMethod}}</text>
+        </view>
+        <view class="drug-row" a:if="{{item.dosage}}">
+          <text class="drug-label">用量</text>
+          <text class="drug-value">{{item.dosage}}</text>
+        </view>
+        <view class="drug-row" a:if="{{item.frequency}}">
+          <text class="drug-label">频次</text>
+          <text class="drug-value">{{item.frequency}}</text>
+        </view>
+        <view class="drug-row" a:if="{{item.remark}}">
+          <text class="drug-label">备注</text>
+          <text class="drug-value">{{item.remark}}</text>
+        </view>
+      </view>
+      <view class="drug-empty" a:if="{{!record.items || record.items.length === 0}}">
+        <text class="drug-empty-text">暂无药品</text>
+      </view>
+    </view>
+  </block>
+</view>

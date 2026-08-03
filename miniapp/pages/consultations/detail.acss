@@ -1,0 +1,181 @@
+.page-consult-detail {
+  background: #f5f5f5;
+  min-height: 100vh;
+  padding-bottom: 40px;
+}
+
+/* 加载中 */
+.detail-loading {
+  padding: 80px 0;
+  text-align: center;
+}
+
+.detail-loading-text {
+  font-size: 14px;
+  color: #999;
+}
+
+/* 状态头 */
+.detail-header {
+  padding: 28px 20px;
+  text-align: center;
+}
+
+.detail-header-WAITING {
+  background: linear-gradient(135deg, #fa8c16, #ffc53d);
+}
+
+.detail-header-IN_PROGRESS {
+  background: linear-gradient(135deg, #1677ff, #4096ff);
+}
+
+.detail-header-COMPLETED {
+  background: linear-gradient(135deg, #52c41a, #73d13d);
+}
+
+.detail-status {
+  display: block;
+  font-size: 22px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.detail-status-sub {
+  display: block;
+  margin-top: 8px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* 卡片 */
+.detail-card {
+  background: #fff;
+  border-radius: 12px;
+  margin: 12px 12px 0;
+  padding: 16px;
+}
+
+.detail-card:first-of-type {
+  margin-top: -10px;
+}
+
+.detail-card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 12px;
+}
+
+.detail-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.detail-row:last-child {
+  border-bottom: none;
+}
+
+.detail-label {
+  font-size: 13px;
+  color: #999;
+}
+
+.detail-value {
+  font-size: 14px;
+  color: #333;
+}
+
+.detail-no {
+  font-family: monospace;
+  color: #1677ff;
+}
+
+.detail-text {
+  font-size: 14px;
+  color: #333;
+  line-height: 1.6;
+}
+
+/* 处方列表项 */
+.presc-item {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.presc-item:last-child {
+  border-bottom: none;
+}
+
+.presc-item-main {
+  display: flex;
+  flex-direction: column;
+}
+
+.presc-item-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+}
+
+.presc-item-time {
+  font-size: 12px;
+  color: #999;
+  margin-top: 4px;
+}
+
+.presc-item-arrow {
+  font-size: 20px;
+  color: #ccc;
+}
+
+/* 对话气泡 */
+.msg-item {
+  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.msg-DOCTOR {
+  align-items: flex-start;
+}
+
+.msg-PATIENT {
+  align-items: flex-end;
+}
+
+.msg-bubble {
+  max-width: 78%;
+  padding: 10px 12px;
+  border-radius: 10px;
+}
+
+.msg-DOCTOR .msg-bubble {
+  background: #f0f5ff;
+  border-top-left-radius: 2px;
+}
+
+.msg-PATIENT .msg-bubble {
+  background: #e6f4ff;
+  border-top-right-radius: 2px;
+}
+
+.msg-text {
+  font-size: 14px;
+  color: #333;
+  line-height: 1.5;
+}
+
+.msg-meta {
+  font-size: 11px;
+  color: #bbb;
+  margin-top: 4px;
+}

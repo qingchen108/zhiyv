@@ -1,0 +1,80 @@
+<view class="page-consult-detail">
+  <!-- 加载中 -->
+  <view class="detail-loading" a:if="{{!record}}">
+    <text class="detail-loading-text">加载中...</text>
+  </view>
+
+  <block a:if="{{record}}">
+    <!-- 状态头 -->
+    <view class="detail-header detail-header-{{record.status}}">
+      <text class="detail-status">{{statusText(record.status)}}</text>
+      <text class="detail-status-sub">{{record.departmentName}} · {{record.doctorName}}</text>
+    </view>
+
+    <!-- 就诊信息 -->
+    <view class="detail-card">
+      <view class="detail-card-title">就诊信息</view>
+      <view class="detail-row">
+        <text class="detail-label">问诊单号</text>
+        <text class="detail-value detail-no">{{record.regNo}}</text>
+      </view>
+      <view class="detail-row">
+        <text class="detail-label">就诊科室</text>
+        <text class="detail-value">{{record.departmentName}}</text>
+      </view>
+      <view class="detail-row">
+        <text class="detail-label">就诊医生</text>
+        <text class="detail-value">{{record.doctorName}}</text>
+      </view>
+      <view class="detail-row">
+        <text class="detail-label">就诊时间</text>
+        <text class="detail-value">{{record.scheduleDate}} {{periodText(record.timePeriod)}}</text>
+      </view>
+      <view class="detail-row">
+        <text class="detail-label">就诊人</text>
+        <text class="detail-value">{{record.visitorName}}{{record.visitorInfo}}</text>
+      </view>
+    </view>
+
+    <!-- 预问诊摘要 -->
+    <view class="detail-card" a:if="{{record.preDiagnosis}}">
+      <view class="detail-card-title">预问诊摘要</view>
+      <text class="detail-text">{{record.preDiagnosis}}</text>
+    </view>
+
+    <!-- 诊断 -->
+    <view class="detail-card" a:if="{{record.diagnosis}}">
+      <view class="detail-card-title">诊断结果</view>
+      <text class="detail-text">{{record.diagnosis}}</text>
+    </view>
+
+    <!-- 处方 -->
+    <view class="detail-card" a:if="{{prescriptions.length > 0}}">
+      <view class="detail-card-title">相关处方</view>
+      <view
+        class="presc-item"
+        a:for="{{prescriptions}}"
+        a:key="id"
+        data-id="{{item.id}}"
+        onTap="goPrescription"
+      >
+        <view class="presc-item-main">
+          <text class="presc-item-name">处方 #{{item.id}}</text>
+          <text class="presc-item-time">{{item.createdAt}}</text>
+        </view>
+        <text class="presc-item-arrow">›</text>
+      </view>
+    </view>
+
+    <!-- 对话记录 -->
+    <view class="detail-card" a:if="{{messages.length > 0}}">
+      <view class="detail-card-title">对话记录</view>
+      <view class="msg-item msg-{{item.senderType}}" a:for="{{messages}}" a:key="id">
+        <view class="msg-bubble">
+          <text class="msg-text">{{item.content}}</text>
+        </view>
+        <text class="msg-meta">{{senderName(item.senderType)}} · {{item.createdAt}}</text>
+      </view>
+    </view>
+  </block>
+</view>

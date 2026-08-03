@@ -1,0 +1,145 @@
+.page-presc-detail {
+  background: #f5f5f5;
+  min-height: 100vh;
+  padding-bottom: 40px;
+}
+
+/* 加载中 */
+.detail-loading {
+  padding: 80px 0;
+  text-align: center;
+}
+
+.detail-loading-text {
+  font-size: 14px;
+  color: #999;
+}
+
+/* 状态头 */
+.detail-header {
+  padding: 28px 20px;
+  text-align: center;
+}
+
+.detail-header-ACTIVE {
+  background: linear-gradient(135deg, #52c41a, #73d13d);
+}
+
+.detail-header-REVOKED {
+  background: linear-gradient(135deg, #bfbfbf, #d9d9d9);
+}
+
+.detail-status {
+  display: block;
+  font-size: 22px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.detail-status-sub {
+  display: block;
+  margin-top: 8px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* 卡片 */
+.detail-card {
+  background: #fff;
+  border-radius: 12px;
+  margin: 12px 12px 0;
+  padding: 16px;
+}
+
+.detail-card:first-of-type {
+  margin-top: -10px;
+}
+
+.detail-card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 12px;
+}
+
+.detail-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.detail-row:last-child {
+  border-bottom: none;
+}
+
+.detail-label {
+  font-size: 13px;
+  color: #999;
+  flex-shrink: 0;
+  margin-right: 12px;
+}
+
+.detail-value {
+  font-size: 14px;
+  color: #333;
+  text-align: right;
+  flex: 1;
+}
+
+/* 药品明细 */
+.drug-item {
+  padding: 12px 0;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.drug-item:first-child {
+  padding-top: 0;
+}
+
+.drug-item:last-child {
+  border-bottom: none;
+}
+
+.drug-item-header {
+  margin-bottom: 8px;
+}
+
+.drug-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+}
+
+.drug-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.drug-label {
+  font-size: 13px;
+  color: #999;
+  flex-shrink: 0;
+  margin-right: 12px;
+}
+
+.drug-value {
+  font-size: 13px;
+  color: #333;
+  text-align: right;
+  flex: 1;
+}
+
+.drug-empty {
+  text-align: center;
+  padding: 20px 0;
+}
+
+.drug-empty-text {
+  font-size: 13px;
+  color: #999;
+}

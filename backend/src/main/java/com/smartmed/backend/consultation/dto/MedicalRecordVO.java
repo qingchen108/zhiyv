@@ -1,6 +1,8 @@
 package com.smartmed.backend.consultation.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.smartmed.backend.order.dto.DrugOrderVO;
+import com.smartmed.backend.order.dto.ReminderVO;
 import com.smartmed.backend.prescription.dto.PrescriptionVO;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -34,6 +36,10 @@ public class MedicalRecordVO {
     private List<ConsultationSummary> consultations;
     /** 历史处方（含明细）。 */
     private List<PrescriptionVO> prescriptions;
+    /** 历史购药订单（C 端健康档案用药汇总，08 ticket）。 */
+    private List<DrugOrderVO> orders;
+    /** 用药提醒（C 端健康档案用药汇总，08 ticket）。 */
+    private List<ReminderVO> reminders;
 
     @Data
     @Builder

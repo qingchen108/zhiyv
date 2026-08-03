@@ -1,0 +1,38 @@
+<view class="page-prescs">
+  <!-- 列表 -->
+  <view class="presc-list">
+    <view
+      class="presc-card"
+      a:for="{{records}}"
+      a:key="id"
+      data-id="{{item.id}}"
+      onTap="goDetail"
+    >
+      <view class="presc-card-header">
+        <text class="presc-no">处方 #{{item.id}}</text>
+        <text class="presc-status presc-status-{{item.status}}">{{statusText(item.status)}}</text>
+      </view>
+      <view class="presc-card-body">
+        <view class="presc-row">
+          <text class="presc-label">开方医生</text>
+          <text class="presc-value">{{item.doctorName}}</text>
+        </view>
+        <view class="presc-row">
+          <text class="presc-label">开方日期</text>
+          <text class="presc-value">{{item.createdAt}}</text>
+        </view>
+        <view class="presc-row" a:if="{{item.drugsBrief}}">
+          <text class="presc-label">药品</text>
+          <text class="presc-value presc-drugs">{{item.drugsBrief}}{{item.drugsMore ? ' 等' : ''}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="list-empty" a:if="{{records.length === 0 && !loading}}">
+      <text class="list-empty-text">暂无处方记录</text>
+    </view>
+    <view class="list-footer" a:if="{{records.length > 0}}">
+      <text class="list-footer-text">{{finished ? '没有更多了' : '加载中...'}}</text>
+    </view>
+  </view>
+</view>

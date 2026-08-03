@@ -66,6 +66,12 @@
   margin-bottom: 16px;
 }
 
+.menu-title {
+  font-size: 13px;
+  color: #999;
+  padding: 10px 16px 0;
+}
+
 .menu-item {
   display: flex;
   flex-direction: row;

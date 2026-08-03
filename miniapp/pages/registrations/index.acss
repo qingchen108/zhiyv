@@ -1,32 +1,140 @@
-.page-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 80vh;
-  padding: 40px;
+.page-regs {
   background: #f5f5f5;
+  min-height: 100vh;
+  padding-bottom: 24px;
 }
 
-.placeholder-icon {
-  font-size: 64px;
-  margin-bottom: 16px;
+/* 状态筛选 */
+.status-tabs {
+  display: flex;
+  flex-direction: row;
+  background: #fff;
+  padding: 0 8px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
-.placeholder-title {
-  font-size: 20px;
+.status-tab {
+  flex: 1;
+  text-align: center;
+  padding: 14px 0;
+  font-size: 14px;
+  color: #666;
+  border-bottom: 2px solid transparent;
+}
+
+.status-tab-active {
+  color: #1677ff;
+  font-weight: 600;
+  border-bottom-color: #1677ff;
+}
+
+/* 列表 */
+.reg-list {
+  padding: 12px;
+}
+
+.reg-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 12px;
+}
+
+.reg-card-header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.reg-doctor {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.reg-doctor-name {
+  font-size: 16px;
   font-weight: 600;
   color: #333;
-  margin-bottom: 8px;
 }
 
-.placeholder-desc {
+.reg-dept {
+  font-size: 12px;
+  color: #999;
+  margin-left: 8px;
+  background: #f5f5f5;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.reg-status {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.reg-status-REGISTERED {
+  color: #1677ff;
+}
+
+.reg-status-VISITED {
+  color: #52c41a;
+}
+
+.reg-status-CANCELLED {
+  color: #999;
+}
+
+.reg-card-body {
+  border-top: 1px solid #f0f0f0;
+  padding-top: 10px;
+}
+
+.reg-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.reg-row:last-child {
+  margin-bottom: 0;
+}
+
+.reg-label {
+  font-size: 13px;
+  color: #999;
+}
+
+.reg-value {
+  font-size: 13px;
+  color: #333;
+}
+
+.reg-no {
+  font-family: monospace;
+  color: #666;
+}
+
+.list-empty {
+  padding: 60px 0;
+  text-align: center;
+}
+
+.list-empty-text {
   font-size: 14px;
   color: #999;
-  margin-bottom: 4px;
 }
 
-.placeholder-hint {
+.list-footer {
+  text-align: center;
+  padding: 12px 0;
+}
+
+.list-footer-text {
   font-size: 12px;
   color: #ccc;
 }

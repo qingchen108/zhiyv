@@ -21,6 +21,8 @@ public class PrescriptionVO {
     private Long consultationId;
     private Long patientId;
     private Long doctorId;
+    /** 开方医生姓名（C 端处方列表/详情展示，08 ticket）。 */
+    private String doctorName;
     private String diagnosis;
     private String advice;
     /** ACTIVE / REVOKED。 */

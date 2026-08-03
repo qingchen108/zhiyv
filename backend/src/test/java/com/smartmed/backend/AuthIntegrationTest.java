@@ -72,8 +72,8 @@ class AuthIntegrationTest {
                 .andExpect(jsonPath("$.data.token").isNotEmpty())
                 .andExpect(jsonPath("$.data.role").value("ADMIN"))
                 .andExpect(jsonPath("$.data.doctorId").doesNotExist()) // ADMIN 为 null，序列化省略
-                .andExpect(jsonPath("$.data.expiresIn").value(43200))
-                .andExpect(jsonPath("$.data.mustChangePassword").value(true))
+                .andExpect(jsonPath("$.data.expiresIn").value(1800)) // ADR-0013: B 端 access 30min
+                .andExpect(jsonPath("$.data.mustChangePassword").value(false)) // V06_1: 演示账号免首登改密
                 .andReturn();
         // 验证 token 可解析
         JsonNode data = objectMapper.readTree(result.getResponse().getContentAsString()).path("data");

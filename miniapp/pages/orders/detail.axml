@@ -1,0 +1,45 @@
+<view class="page-order-detail">
+  <!-- 加载中 -->
+  <view class="detail-loading" a:if="{{!record}}">
+    <text class="detail-loading-text">加载中...</text>
+  </view>
+
+  <block a:if="{{record}}">
+    <!-- 状态头 -->
+    <view class="detail-header detail-header-{{record.status}}">
+      <text class="detail-status">{{statusText(record.status)}}</text>
+      <text class="detail-status-sub">订单 #{{record.id}}</text>
+    </view>
+
+    <!-- 订单信息 -->
+    <view class="detail-card">
+      <view class="detail-card-title">订单信息</view>
+      <view class="detail-row">
+        <text class="detail-label">购药药店</text>
+        <text class="detail-value">{{record.pharmacyName}}</text>
+      </view>
+      <view class="detail-row" a:if="{{record.pharmacyAddress}}">
+        <text class="detail-label">药店地址</text>
+        <text class="detail-value">{{record.pharmacyAddress}}</text>
+      </view>
+      <view class="detail-row">
+        <text class="detail-label">关联处方</text>
+        <text class="detail-value">#{{record.prescriptionId}}</text>
+      </view>
+      <view class="detail-row">
+        <text class="detail-label">下单时间</text>
+        <text class="detail-value">{{record.createdAt}}</text>
+      </view>
+      <view class="detail-row">
+        <text class="detail-label">订单金额</text>
+        <text class="detail-value detail-amount">¥{{amountText(record.totalAmount)}}</text>
+      </view>
+    </view>
+
+    <!-- 配送信息 -->
+    <view class="detail-card" a:if="{{record.deliveryInfo}}">
+      <view class="detail-card-title">配送信息</view>
+      <text class="detail-text">{{record.deliveryInfo}}</text>
+    </view>
+  </block>
+</view>

@@ -288,7 +288,11 @@ public class ConsultationService {
         return c;
     }
 
-    private ConsultationVO toVO(Consultation c) {
+    /**
+     * 构建问诊 VO（详情 + 列表共用）。
+     * <p>public 供 C 端记录查询（08 ticket RecordsService）复用，避免重复实现。
+     */
+    public ConsultationVO toVO(Consultation c) {
         Registration reg = registrationMapper.selectById(c.getRegistrationId());
         Schedule schedule = reg != null ? scheduleMapper.selectById(reg.getScheduleId()) : null;
         Doctor doctor = doctorMapper.selectById(c.getDoctorId());

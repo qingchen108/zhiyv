@@ -1,0 +1,33 @@
+<view class="page-reminders">
+  <!-- 列表 -->
+  <view class="remind-list">
+    <view class="remind-card" a:for="{{records}}" a:key="id">
+      <view class="remind-card-header">
+        <text class="remind-drug">{{item.drugName}}</text>
+        <text class="remind-status remind-status-{{item.status}}">{{statusText(item.status)}}</text>
+      </view>
+      <view class="remind-card-body">
+        <view class="remind-row">
+          <text class="remind-label">用量</text>
+          <text class="remind-value">{{item.dosage || '—'}}</text>
+        </view>
+        <view class="remind-row">
+          <text class="remind-label">频次</text>
+          <text class="remind-value">{{item.frequency || '—'}}</text>
+        </view>
+        <view class="remind-row">
+          <text class="remind-label">下次提醒</text>
+          <text class="remind-value remind-next">{{item.nextRemindAt}}</text>
+        </view>
+        <view class="remind-row" a:if="{{item.remark}}">
+          <text class="remind-label">备注</text>
+          <text class="remind-value">{{item.remark}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="list-empty" a:if="{{records.length === 0 && !loading}}">
+      <text class="list-empty-text">暂无用药提醒</text>
+    </view>
+  </view>
+</view>

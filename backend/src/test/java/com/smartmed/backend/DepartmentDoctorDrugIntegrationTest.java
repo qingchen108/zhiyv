@@ -160,7 +160,8 @@ class DepartmentDoctorDrugIntegrationTest {
         mockMvc.perform(post("/api/b/doctors")
                         .header("Authorization", "Bearer " + token)
                         .contentType("application/json")
-                        .content("{\"departmentId\":2,\"name\":\"重复手机号医生\",\"phone\":\"13800000002\"}"))
+                        .content("{\"departmentId\":2,\"name\":\"重复手机号医生\",\"gender\":\"男\","
+                                + "\"birthDate\":\"1985-01-01\",\"title\":\"主治医师\",\"phone\":\"13800000002\"}"))
                 .andExpect(jsonPath("$.code").value(409))
                 .andExpect(jsonPath("$.message").value("手机号已被使用"));
     }
@@ -172,7 +173,8 @@ class DepartmentDoctorDrugIntegrationTest {
         mockMvc.perform(put("/api/b/doctors/1")
                         .header("Authorization", "Bearer " + token)
                         .contentType("application/json")
-                        .content("{\"departmentId\":2,\"name\":\"张呼吸\",\"phone\":\"13800000002\"}"))
+                        .content("{\"departmentId\":2,\"name\":\"张呼吸\",\"gender\":\"男\","
+                                + "\"birthDate\":\"1975-01-01\",\"title\":\"主任医师\",\"phone\":\"13800000002\"}"))
                 .andExpect(jsonPath("$.code").value(403));
     }
 
@@ -215,7 +217,8 @@ class DepartmentDoctorDrugIntegrationTest {
         MvcResult r = mockMvc.perform(post("/api/b/doctors")
                         .header("Authorization", "Bearer " + token)
                         .contentType("application/json")
-                        .content("{\"departmentId\":2,\"name\":\"待删医生\",\"phone\":\"" + phone + "\"}"))
+                        .content("{\"departmentId\":2,\"name\":\"待删医生\",\"gender\":\"女\","
+                                + "\"birthDate\":\"1990-06-15\",\"title\":\"住院医师\",\"phone\":\"" + phone + "\"}"))
                 .andReturn();
         long doctorId = objectMapper.readTree(r.getResponse().getContentAsString())
                 .path("data").path("id").asLong();

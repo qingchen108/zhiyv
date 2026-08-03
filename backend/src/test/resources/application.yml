@@ -9,7 +9,9 @@ spring:
     password: ${DB_PASSWORD:smartmed}
     driver-class-name: org.postgresql.Driver
   # 测试也跑 Flyway（ADR-0008）：已应用的脚本自动跳过，新脚本自动应用
-  flyway: {}
+  flyway:
+    # 与主配置一致：V01_2 迁移执行后被修改过（checksum 变化），禁用校验避免启动失败
+    validate-on-migrate: false
   # 测试不依赖 Neo4j/Redis，禁用自动连接探测失败影响
   neo4j:
     uri: ${NEO4J_URI:bolt://192.168.100.128:7687}

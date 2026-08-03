@@ -1,6 +1,54 @@
-<view class="page-placeholder">
-  <view class="placeholder-icon">📋</view>
-  <text class="placeholder-title">挂号记录</text>
-  <text class="placeholder-desc">正在开发中，敬请期待</text>
-  <text class="placeholder-hint">您可以在这里查看您的挂号记录</text>
+<view class="page-regs">
+  <!-- 状态筛选 -->
+  <view class="status-tabs">
+    <view
+      class="status-tab {{activeTab === item.key ? 'status-tab-active' : ''}}"
+      a:for="{{tabs}}"
+      a:key="key"
+      data-key="{{item.key}}"
+      onTap="switchTab"
+    >
+      <text>{{item.label}}</text>
+    </view>
+  </view>
+
+  <!-- 列表 -->
+  <view class="reg-list">
+    <view
+      class="reg-card"
+      a:for="{{records}}"
+      a:key="id"
+      data-id="{{item.id}}"
+      onTap="goDetail"
+    >
+      <view class="reg-card-header">
+        <view class="reg-doctor">
+          <text class="reg-doctor-name">{{item.doctorName}}</text>
+          <text class="reg-dept">{{item.departmentName}}</text>
+        </view>
+        <text class="reg-status reg-status-{{item.status}}">{{statusText(item.status)}}</text>
+      </view>
+      <view class="reg-card-body">
+        <view class="reg-row">
+          <text class="reg-label">就诊时间</text>
+          <text class="reg-value">{{item.scheduleDate}} {{periodText(item.timePeriod)}}</text>
+        </view>
+        <view class="reg-row">
+          <text class="reg-label">就诊人</text>
+          <text class="reg-value">{{item.visitorName}}</text>
+        </view>
+        <view class="reg-row">
+          <text class="reg-label">挂号单号</text>
+          <text class="reg-value reg-no">{{item.regNo}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="list-empty" a:if="{{records.length === 0 && !loading}}">
+      <text class="list-empty-text">暂无挂号记录</text>
+    </view>
+    <view class="list-footer" a:if="{{records.length > 0}}">
+      <text class="list-footer-text">{{finished ? '没有更多了' : '加载中...'}}</text>
+    </view>
+  </view>
 </view>

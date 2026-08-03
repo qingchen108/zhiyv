@@ -36,4 +36,28 @@ Page({
   navigateToFamilyMembers() {
     my.navigateTo({ url: '/pages/family-members/index' });
   },
+
+  // ==================== 记录查询入口 ====================
+
+  goRegistrations() {
+    // 我的页入口为本人视角，重置成员筛选后跳转
+    getApp().globalData.currentMemberId = 0;
+    my.switchTab({ url: '/pages/registrations/index' });
+  },
+
+  goConsultations() {
+    my.navigateTo({ url: '/pages/consultations/index' });
+  },
+
+  goPrescriptions() {
+    my.navigateTo({ url: '/pages/prescriptions/index' });
+  },
+
+  goOrders() {
+    my.navigateTo({ url: '/pages/orders/index' });
+  },
+
+  goReminders() {
+    my.navigateTo({ url: '/pages/reminders/index' });
+  },
 });

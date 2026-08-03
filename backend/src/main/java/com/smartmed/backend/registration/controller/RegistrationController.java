@@ -42,17 +42,18 @@ public class RegistrationController {
         return Result.success(registrationService.cancel(patientId, id));
     }
 
-    /** 挂号列表（按状态筛选，分页）。 */
+    /** 挂号列表（按状态筛选 + 按当前成员筛选，分页）。 */
     @GetMapping
     public Result<PageResponse<RegistrationVO>> page(
             @RequestParam(defaultValue = "1") long pageNum,
             @RequestParam(defaultValue = "10") long pageSize,
-            @RequestParam(required = false) String status) {
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Long familyMemberId) {
         Long patientId = SecurityUtil.current().getPatientId();
         if (pageSize > 100) {
             pageSize = 100;
         }
-        return Result.success(registrationService.page(patientId, pageNum, pageSize, status));
+        return Result.success(registrationService.page(patientId, pageNum, pageSize, status, familyMemberId));
     }
 
     /** 挂号详情。 */

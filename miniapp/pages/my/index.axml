@@ -24,6 +24,35 @@
     </view>
   </view>
 
+  <view class="menu-section">
+    <view class="menu-title">记录查询</view>
+    <view class="menu-item" onTap="goRegistrations">
+      <text class="menu-icon">🎫</text>
+      <text class="menu-label">挂号记录</text>
+      <text class="menu-arrow">›</text>
+    </view>
+    <view class="menu-item" onTap="goConsultations">
+      <text class="menu-icon">💬</text>
+      <text class="menu-label">问诊记录</text>
+      <text class="menu-arrow">›</text>
+    </view>
+    <view class="menu-item" onTap="goPrescriptions">
+      <text class="menu-icon">💊</text>
+      <text class="menu-label">处方记录</text>
+      <text class="menu-arrow">›</text>
+    </view>
+    <view class="menu-item" onTap="goOrders">
+      <text class="menu-icon">🏪</text>
+      <text class="menu-label">购药订单</text>
+      <text class="menu-arrow">›</text>
+    </view>
+    <view class="menu-item" onTap="goReminders">
+      <text class="menu-icon">⏰</text>
+      <text class="menu-label">用药提醒</text>
+      <text class="menu-arrow">›</text>
+    </view>
+  </view>
+
   <view class="version-info">
     <text class="version-text">智愈健康 v1.0.0</text>
   </view>
