@@ -59,9 +59,19 @@
 | 编排框架 | LangGraph + LangChain |
 | LLM | 国内模型（通义千问/智谱/文心）或 AI 聚合平台（火山引擎等） |
 | 与 Java 通信 | HTTP REST，Java 暴露 `/api/agent/tools/*` |
-| Agent 鉴权 | 请求头 `X-Agent-Secret`（共享密钥，环境变量配置） |
-| 患者身份 | Java 转发时注入 `X-Patient-Id`，Python 调工具时原样带回 |
+| Agent 鉴权 | 请求头 `X-Agent-Secret`（共享密钥，环境变量配置），双向校验：Python→Java 调工具、Java→Python 转发 chat 均带同一密钥，两端各自校验 |
+| 患者身份 | Java 转发时注入 `X-Patient-Id`（= JWT patientId claim 的操作人，不信任前端）；就诊人由工具参数 `family_member_id` 表达（self=本人），Java 工具实现沿用现有归属校验；Python 只透传不解读 |
 | 核心原则 | Python 不直接访问任何数据库，所有数据访问经 Java API |
+| 意图集（Intent） | 6 类：triage / registration / consultation / pharmacy / reminder / general（闲聊兜底），与 ticket 11-14 能力域一一对应；emotion 为旁路能力（影响语气），不单独成意图 |
+| 图结构 | LangGraph StateGraph + 条件边（router → 各意图节点 → 汇聚），09 起预留意图节点插槽，后续 ticket 只填空不改骨架 |
+| 意图路由 | 09 阶段真实 LLM 分类（验证分类质量），分类结果仅决定 prompt 模板，不触发工具调用 |
+| LLM 接入 | 统一 OpenAI-compatible 接口（ChatOpenAI + base_url/api_key/model 三变量切换），不引入各家 SDK；不做 fallback，启动时连通性校验失败即清晰报错 |
+| 流式生成 | `astream_events` 产出 token 增量，映射为 SSE `delta` 事件 |
+| 工具清单 | 11 个：查询类 7（query_departments / query_doctors / query_schedule / query_knowledge_graph / get_medical_record / get_prescription / query_pharmacy_stock）+ 动作类 4（create_registration_draft / write_pre_diagnosis / create_order_draft / create_reminder）；confirm 类（挂号确认/下单确认）不入 Agent 工具集，前端凭卡片 action 直调 Java |
+| 工具边界 | Agent 仅能创建草稿，永远不能替用户完成挂号/下单；卡片 payload 数据源为 Java 草稿响应权威 JSON，LLM 在确认链路中零参与 |
+| 工具交付 | 09 声明不实现：定义文件（name/description/params schema）交付全部 11 个，Java 路由骨架 + X-Agent-Secret 校验到位，内部逻辑留 11-15 填充 |
+| 工具契约 | 单一来源为 `agent/tools/tools.json`（11 个工具 name/description/parameters JSON Schema + 对应 Java 端点路径），Python 启动时读此文件注册为 LangChain tools，两端不各自维护第二份 schema |
+| Java 工具路由 | 泛化路由 `POST /api/agent/tools/{toolName}`，Body `{"arguments": {...}}` 原样透传；过滤器验 X-Agent-Secret + 注入 X-Patient-Id，Dispatcher 按 toolName 分发；09 阶段 handler 返回 501，11-15 逐个实现 |
 
 ## 6. 知识图谱（Neo4j）
 
@@ -116,6 +126,28 @@
        → Java 透传 SSE 事件 → 小程序逐字渲染
 ```
 
+### SSE 事件协议（ticket 09 定稿）
+
+| event | data | 说明 |
+|-------|------|------|
+| delta | `{"text": "..."}` | AI 回复增量文本，逐字渲染 |
+| tool_call | `{"tool": "...", "label": "..."}` | 工具调用轨迹，前端展示灰色提示条 |
+| card | `{"type": "...", "title": "...", "action": "...", "payload": {...}}` | 确认卡片；action 为 Java C 端接口完整路径，前端点确认直调 Java（不经 Python） |
+| done | `{}` | 流结束 |
+| error | `{"message": "..."}` | 错误事件 |
+
+| 决策项 | 结论 |
+|--------|------|
+| 事件生产者 | 仅 Python（唯一生产者），Java 网关不解析不重组，字节级透传 |
+| 扩展方式 | 后续 ticket 加新事件类型只改 Python + 前端，不动 Java |
+| 请求体 | `POST /api/c/chat/stream`，Body `{"messages": [{"role": "user"\|"assistant", "content": "..."}]}` 全量历史，无状态；前端本地缓存拼装，ticket 10 做存储后请求体不变 |
+| 患者身份 | 前端不传 patientId，Java 从 JWT 解析注入 `X-Patient-Id`（身份信息由 Java 注入的可信链） |
+| Java 侧失败语义 | Java 转发失败（Python 未启动/超时）返回 HTTP 502，Java 不发 error 事件（协议纯净）；前端对非 200 显示兜底文案 |
+| 长上下文 | token 超限截断是 Python 内部策略（保留最近 N 条），不进契约 |
+| Python 工程 | HTTP 框架 FastAPI + uvicorn（StreamingResponse 出 SSE）；依赖管理 pip + venv + requirements.txt（dev 加 pytest）；pytest 三类骨架测试：工具契约加载（11 个 schema 合法）/ 意图路由单测（mock LLM）/ SSE 输出格式 |
+| 验证策略 | `AGENT_ECHO_MODE`（默认 false）：true 时绕过 LLM 直接回显 delta 事件，用于无 API key 的链路 smoke；false 时真实 LLM 意图分类 + 生成 |
+| 转发超时 | Java 首 token 等待 60s（连接/首包），首包后逐块透传不再超时；不做心跳，前端 30s 无事件自行提示断开 |
+
 ## 9. 开发模式
 
 | 决策项 | 结论 |
@@ -157,6 +189,8 @@
 | 草稿（Draft） | 两段式写操作的第一阶段产物，未真正写库，30分钟过期 |
 | 预问诊 | AI 在医生接诊前收集并整理的病情摘要 |
 | 工具（Tool） | Agent 可调用的 Java API，用于完成业务操作 |
+| 意图（Intent） | 用户消息被路由到的对话能力域，6 类：triage / registration / consultation / pharmacy / reminder / general；emotion 不构成意图，是旁路语气能力 |
+| 确认卡片（Card） | SSE `card` 事件嵌入对话流的结构化确认 UI；action 为 Java C 端接口完整路径，payload 为 Java 草稿响应的权威 JSON 原样透传，用户点击后前端直调 Java |
 | 知识图谱 | Neo4j 中症状-疾病-科室-药品-禁忌的关联网络 |
 | 演示账号 | C 端预设患者身份，打开即登录，无需授权 |
 | 医院 | 种子数据预设的唯一一家三甲医院，B 端不提供医院管理页面，所有科室/医生/排班均归属此医院 |

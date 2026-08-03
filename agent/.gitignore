@@ -1,0 +1,12 @@
+# Python 运行时产物
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# 本地环境变量（含密钥，不入库）
+.env
+
+# IDE
+.idea/
+.vscode/

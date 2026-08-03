@@ -1,0 +1,5 @@
+# SmartMed Agent 服务 - 测试依赖（09 ticket）
+-r requirements.txt
+
+pytest>=8.2
+pytest-asyncio>=0.23

@@ -1,5 +1,6 @@
 package com.smartmed.backend.security;
 
+import com.smartmed.backend.agent.security.AgentSecretFilter;
 import com.smartmed.backend.common.GlobalExceptionHandler;
 import com.smartmed.backend.common.Result;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +24,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
  *   <li>{@code /api/auth/**}、{@code /api/b/auth/refresh}、{@code /api/health} 公开</li>
  *   <li>{@code /api/b/**} 需 typ=B（角色由 @PreAuthorize 补充）；refresh 需 typ=B_RT，在 AuthService 内解析</li>
  *   <li>{@code /api/c/**} 需 typ=C</li>
- *   <li>{@code /api/agent/tools/**} 02 阶段直接 401（不带 X-Agent-Secret 一律拒），09+ 再加 secret 校验</li>
+ *   <li>{@code /api/agent/tools/**} permitAll + AgentSecretFilter 校验 X-Agent-Secret（09 接手，ADR-0015）</li>
  *   <li>其他拒绝</li>
  * </ul>
  * JWT 无状态；session 禁用；CSRF 禁用（无状态 API）。
@@ -35,6 +36,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
+    private final AgentSecretFilter agentSecretFilter;
     private final TypAuthorizationManager typAuthorizationManager;
     private final GlobalExceptionHandler exceptionHandler;
 
@@ -52,9 +54,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // 公开端点：B 端登录、refresh 换发（无 access token，靠 refresh token 自身）、C 端 demo-login、健康检查
                         .requestMatchers("/api/auth/**", "/api/b/auth/refresh", "/api/c/auth/demo-login", "/api/health").permitAll()
-                        // Agent 网关：02 阶段直接拒绝（不带 X-Agent-Secret 一律 401），09+ 接手再加 secret 校验
-                        // denyAll 触发 AuthenticationEntryPoint -> 写 401（见下方 entryPoint）
-                        .requestMatchers("/api/agent/tools/**").denyAll()
+                        // Agent 工具路由：permitAll + AgentSecretFilter 校验 X-Agent-Secret（09，ADR-0015）
+                        .requestMatchers("/api/agent/tools/**").permitAll()
                         // B/C 端：需认证 + typ 匹配（access 绑定 TypAuthorizationManager 做前缀分权）
                         .requestMatchers("/api/b/**", "/api/c/**").access(typAuthorizationManager)
                         // 其他拒绝
@@ -65,7 +66,9 @@ public class SecurityConfig {
                         .authenticationEntryPoint(authenticationEntryPoint())
                         .accessDeniedHandler(accessDeniedHandler()))
                 // JWT 过滤器在 UsernamePasswordAuthenticationFilter 之前
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                // Agent 工具路由密钥校验（09）：与 JWT 无关，置于 JWT 过滤器之后
+                .addFilterAfter(agentSecretFilter, JwtAuthFilter.class);
 
         return http.build();
     }

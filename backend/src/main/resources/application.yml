@@ -9,6 +9,11 @@ server:
 spring:
   application:
     name: smartmed-backend
+  # 异步请求上限（09：Agent SSE 长连接）。首 token 60s 由 smartmed.agent.first-token-timeout-ms 控制，
+  # 此处是整条流的上限（1h），超时 Tomcat 强制断开。
+  mvc:
+    async:
+      request-timeout: 3600000
   # 导入 backend/.env：[.properties] 提示 Spring 把无扩展名的 .env 当 properties 解析（KEY=VALUE）。
   # file:.env 的 "." 是 JVM 工作目录（mvn spring-boot:run / java -jar 均为 backend/）。
   # optional: 找不到时静默跳过，不阻断启动。导入属性优先级高于本文件，故 .env 覆盖下方默认值。
@@ -66,6 +71,10 @@ smartmed:
     c-expire-seconds: 604800           # 7d
   agent:
     secret: ${AGENT_SECRET:smartmed-dev-agent-secret-change-me}
+    # Python Agent 服务基址（09，Java↔Python 双向鉴权见 CONTEXT §5）
+    base-url: ${AGENT_BASE_URL:http://localhost:8000}
+    # 首 token 等待上限（ms）：网关同步等响应头，超时视为 Agent 服务失败（HTTP 502，ADR-0014）
+    first-token-timeout-ms: 60000
 
 logging:
   level:

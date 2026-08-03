@@ -1,0 +1,224 @@
+{
+  "version": "1.0",
+  "description": "SmartMed Agent 工具契约单一来源（CONTEXT §5，ADR-0015）。两端以本文件为唯一事实源：Python 启动时读入注册 LangChain tools；Java 按 name 实现 /api/agent/tools/{name} 泛化路由。09 阶段仅声明不实现（Java handler 返回 501）。",
+  "tools": [
+    {
+      "name": "query_departments",
+      "description": "查询医院科室列表，可按名称模糊搜索。用于导诊推荐科室。",
+      "type": "query",
+      "java_endpoint": "/api/agent/tools/query_departments",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "科室名称关键字，可选；空则返回全部"
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "query_doctors",
+      "description": "按科室查询医生列表。用于导诊推荐医生。",
+      "type": "query",
+      "java_endpoint": "/api/agent/tools/query_doctors",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "department_id": {
+            "type": "integer",
+            "description": "科室 ID"
+          }
+        },
+        "required": ["department_id"]
+      }
+    },
+    {
+      "name": "query_schedule",
+      "description": "查询排班与剩余号源，可按医生/科室/日期过滤。用于挂号场景的号源查询。",
+      "type": "query",
+      "java_endpoint": "/api/agent/tools/query_schedule",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "doctor_id": {
+            "type": "integer",
+            "description": "医生 ID，可选"
+          },
+          "department_id": {
+            "type": "integer",
+            "description": "科室 ID，可选"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "description": "日期 YYYY-MM-DD，可选"
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "query_knowledge_graph",
+      "description": "查询知识图谱：症状/疾病关键词子串匹配，返回关联科室与医生建议。用于导诊推理。",
+      "type": "query",
+      "java_endpoint": "/api/agent/tools/query_knowledge_graph",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "keyword": {
+            "type": "string",
+            "description": "症状或疾病关键词"
+          }
+        },
+        "required": ["keyword"]
+      }
+    },
+    {
+      "name": "get_medical_record",
+      "description": "获取以实际就诊人为中心的病历聚合（挂号/问诊/处方/过敏史）。用于预问诊与处方解读。",
+      "type": "query",
+      "java_endpoint": "/api/agent/tools/get_medical_record",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "family_member_id": {
+            "type": "integer",
+            "description": "家人 ID，可选；缺省为操作人本人（self）"
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "get_prescription",
+      "description": "获取处方详情（含明细与用法用量）。用于处方通俗解读。",
+      "type": "query",
+      "java_endpoint": "/api/agent/tools/get_prescription",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "prescription_id": {
+            "type": "integer",
+            "description": "处方 ID"
+          }
+        },
+        "required": ["prescription_id"]
+      }
+    },
+    {
+      "name": "query_pharmacy_stock",
+      "description": "查询某药品在各药店的库存、价格与配送时效对比。用于购药推荐。",
+      "type": "query",
+      "java_endpoint": "/api/agent/tools/query_pharmacy_stock",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "drug_id": {
+            "type": "integer",
+            "description": "药品 ID"
+          }
+        },
+        "required": ["drug_id"]
+      }
+    },
+    {
+      "name": "create_registration_draft",
+      "description": "创建挂号草稿（两段式第一步，TTL 30min）。只建草稿不确认，返回 JSON 由前端渲染确认卡片，用户点击后直调 C 端确认接口（ADR-0015）。",
+      "type": "action",
+      "java_endpoint": "/api/agent/tools/create_registration_draft",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "schedule_id": {
+            "type": "integer",
+            "description": "排班 ID"
+          },
+          "family_member_id": {
+            "type": "integer",
+            "description": "家人 ID，可选；缺省为操作人本人（self）"
+          }
+        },
+        "required": ["schedule_id"]
+      }
+    },
+    {
+      "name": "write_pre_diagnosis",
+      "description": "写入预问诊摘要到问诊记录（consultation.pre_diagnosis，AI 仅供参考标注由前端展示）。仅 IN_PROGRESS 问诊可写。",
+      "type": "action",
+      "java_endpoint": "/api/agent/tools/write_pre_diagnosis",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "consultation_id": {
+            "type": "integer",
+            "description": "问诊 ID"
+          },
+          "content": {
+            "type": "string",
+            "description": "预问诊摘要内容（患者主诉 + AI 整理的结构化摘要）"
+          }
+        },
+        "required": ["consultation_id", "content"]
+      }
+    },
+    {
+      "name": "create_order_draft",
+      "description": "创建购药草稿（两段式第一步，TTL 30min）。只建草稿不确认，返回 JSON 由前端渲染确认卡片（ADR-0015）。",
+      "type": "action",
+      "java_endpoint": "/api/agent/tools/create_order_draft",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "prescription_id": {
+            "type": "integer",
+            "description": "处方 ID"
+          },
+          "pharmacy_id": {
+            "type": "integer",
+            "description": "药店 ID"
+          },
+          "delivery_info": {
+            "type": "string",
+            "description": "配送信息备注，可选"
+          }
+        },
+        "required": ["prescription_id", "pharmacy_id"]
+      }
+    },
+    {
+      "name": "create_reminder",
+      "description": "创建用药提醒。用于购药后的服药提醒设置。",
+      "type": "action",
+      "java_endpoint": "/api/agent/tools/create_reminder",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "prescription_id": {
+            "type": "integer",
+            "description": "处方 ID"
+          },
+          "drug_id": {
+            "type": "integer",
+            "description": "药品 ID"
+          },
+          "next_remind_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "下次提醒时间，ISO8601"
+          },
+          "frequency": {
+            "type": "string",
+            "description": "提醒频率（如：每日 3 次），可选"
+          },
+          "dosage": {
+            "type": "string",
+            "description": "单次剂量（如：1 片），可选"
+          }
+        },
+        "required": ["prescription_id", "drug_id", "next_remind_at"]
+      }
+    }
+  ]
+}
