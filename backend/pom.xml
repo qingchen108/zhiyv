@@ -39,6 +39,11 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
+        <!-- WebSocket（ticket 10：C 端对话链路改 WS 短连接，ADR-0014 修订） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-websocket</artifactId>
+        </dependency>
 
         <!-- MyBatis-Plus (CONTEXT §2 ORM) -->
         <dependency>

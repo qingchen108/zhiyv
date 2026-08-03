@@ -1,6 +1,129 @@
-<view class="page-placeholder">
-  <view class="placeholder-icon">🤖</view>
-  <text class="placeholder-title">AI 对话</text>
-  <text class="placeholder-desc">正在开发中，敬请期待</text>
-  <text class="placeholder-hint">您将可以与 AI 助手进行智能问诊</text>
+<view class="page-chat">
+  <!-- 顶栏 -->
+  <view class="chat-header">
+    <view class="chat-header-btn" onTap="openSessions">
+      <text class="chat-header-btn-icon">☰</text>
+    </view>
+    <text class="chat-header-title">{{sessionTitle || 'AI 智能助手'}}</text>
+    <view class="chat-header-right" />
+  </view>
+
+  <!-- 消息区 -->
+  <scroll-view class="chat-body" scroll-y scroll-into-view="{{scrollIntoView}}" scroll-with-animation>
+    <view class="chat-welcome" a:if="{{messages.length === 0 && !loadingHistory}}">
+      <view class="chat-welcome-icon">🤖</view>
+      <text class="chat-welcome-title">您好，我是智愈健康助手</text>
+      <text class="chat-welcome-desc">可以问我：挂号、用药、症状咨询等，也可以帮您办理预约</text>
+    </view>
+    <view class="chat-loading" a:if="{{loadingHistory}}">
+      <text class="chat-loading-text">加载中...</text>
+    </view>
+
+    <view class="chat-msg" a:for="{{messages}}" a:key="key" id="msg-{{item.key}}">
+      <!-- 用户气泡（右侧） -->
+      <view class="msg-row msg-row-user" a:if="{{item.role === 'USER'}}">
+        <view class="msg-bubble msg-bubble-user">{{item.content}}</view>
+      </view>
+
+      <!-- 工具调用轨迹（灰色提示条） -->
+      <view class="msg-row msg-row-tool" a:if="{{item.role === 'TOOL'}}">
+        <view class="msg-tool">
+          <text class="msg-tool-icon">⚙</text>
+          <text class="msg-tool-text">{{item.content}}</text>
+        </view>
+      </view>
+
+      <!-- AI 气泡（左侧，含卡片/免责/失败重试） -->
+      <view class="msg-row msg-row-ai" a:if="{{item.role === 'ASSISTANT'}}">
+        <view class="msg-avatar"><text class="msg-avatar-text">AI</text></view>
+        <view class="msg-content">
+          <view class="msg-bubble msg-bubble-ai">
+            <text a:if="{{item.streaming && !item.content}}" class="msg-typing">正在思考…</text>
+            <text a:else>{{item.content}}</text>
+          </view>
+
+          <!-- 确认卡片（card 帧，仅当轮展示） -->
+          <view class="msg-card" a:if="{{item.card}}" data-index="{{index}}" onTap="onCardTap">
+            <view class="msg-card-title">{{item.card.title}}</view>
+            <view class="msg-card-payload">
+              <view class="msg-card-row" a:for="{{item.card.payload}}" a:for-item="pv" a:for-index="pk" a:key="pk" a:if="{{pk !== 'confirmToken' && pk !== 'draftKey'}}">
+                <text class="msg-card-label">{{pk}}</text>
+                <text class="msg-card-value">{{pv}}</text>
+              </view>
+            </view>
+            <view class="msg-card-status" a:if="{{item.card.status === 'success'}}">
+              <text class="msg-card-success">✓ {{item.card.result || '操作成功'}}</text>
+            </view>
+            <view class="msg-card-status" a:if="{{item.card.status === 'fail'}}">
+              <text class="msg-card-fail">✕ {{item.card.result || '操作失败'}}</text>
+            </view>
+            <view class="msg-card-btns" a:if="{{!item.card.status || item.card.status === 'idle'}}">
+              <view class="msg-card-btn msg-card-btn-primary" data-index="{{index}}" catchTap="onCardTap">确认</view>
+              <view class="msg-card-btn" data-index="{{index}}" catchTap="onCardCancel">取消</view>
+            </view>
+            <view class="msg-card-status" a:if="{{item.card.status === 'loading'}}">
+              <text class="msg-card-loading">处理中…</text>
+            </view>
+          </view>
+
+          <!-- 免责声明 -->
+          <view class="msg-disclaimer" a:if="{{!item.failed}}">AI 建议仅供参考，不能替代医生诊断</view>
+
+          <!-- 失败气泡 + 重试 -->
+          <view class="msg-failed" a:if="{{item.failed}}">
+            <text class="msg-failed-text">{{item.errorText || '发送失败'}}</text>
+            <view class="msg-retry" data-index="{{index}}" onTap="onRetry">重试</view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </scroll-view>
+
+  <!-- 输入区 -->
+  <view class="chat-input-bar">
+    <textarea
+      class="chat-input"
+      value="{{inputValue}}"
+      onInput="onInput"
+      disabled="{{sending}}"
+      placeholder="{{sending ? 'AI 回复中，请稍候…' : '请输入您的问题'}}"
+      placeholder-class="chat-input-placeholder"
+      maxlength="500"
+      auto-height
+    />
+    <view class="chat-send {{(sending || !inputValue) ? 'chat-send-disabled' : ''}}" onTap="onSend">
+      <text class="chat-send-text">发送</text>
+    </view>
+  </view>
+
+  <!-- 会话列表弹层 -->
+  <view class="session-mask" a:if="{{showSessions}}" onTap="closeSessions" />
+  <view class="session-panel" a:if="{{showSessions}}">
+    <view class="session-panel-header">
+      <text class="session-panel-title">会话列表</text>
+      <view class="session-new" onTap="onNewSession">
+        <text class="session-new-text">＋ 新建会话</text>
+      </view>
+    </view>
+    <scroll-view class="session-list" scroll-y>
+      <view
+        class="session-item {{item.id === sessionId ? 'session-item-active' : ''}}"
+        a:for="{{sessions}}"
+        a:key="id"
+        data-id="{{item.id}}"
+        onTap="onSwitchSession"
+      >
+        <view class="session-item-main">
+          <text class="session-item-title">{{item.title}}</text>
+          <text class="session-item-time">{{item.updatedAt}}</text>
+        </view>
+        <view class="session-item-del" data-id="{{item.id}}" catchTap="onDeleteSession">
+          <text class="session-item-del-text">删除</text>
+        </view>
+      </view>
+      <view class="session-empty" a:if="{{sessions.length === 0}}">
+        <text class="session-empty-text">暂无历史会话</text>
+      </view>
+    </scroll-view>
+  </view>
 </view>

@@ -1,32 +1,468 @@
-.page-placeholder {
+/* 智愈健康 - AI 对话页样式（ticket 10） */
+.page-chat {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 80vh;
-  padding: 40px;
+  height: 100vh;
   background: #f5f5f5;
 }
 
-.placeholder-icon {
-  font-size: 64px;
+/* ==================== 顶栏 ==================== */
+.chat-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  height: 48px;
+  padding: 0 12px;
+  background: #1677ff;
+  flex-shrink: 0;
+}
+
+.chat-header-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chat-header-btn-icon {
+  font-size: 22px;
+  color: #fff;
+}
+
+.chat-header-title {
+  flex: 1;
+  text-align: center;
+  font-size: 17px;
+  font-weight: 600;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-header-right {
+  width: 36px;
+}
+
+/* ==================== 消息区 ==================== */
+.chat-body {
+  flex: 1;
+  overflow: hidden;
+  padding: 16px 12px;
+  box-sizing: border-box;
+}
+
+.chat-welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 64px 24px 32px;
+}
+
+.chat-welcome-icon {
+  font-size: 56px;
   margin-bottom: 16px;
 }
 
-.placeholder-title {
-  font-size: 20px;
+.chat-welcome-title {
+  font-size: 18px;
   font-weight: 600;
   color: #333;
   margin-bottom: 8px;
 }
 
-.placeholder-desc {
-  font-size: 14px;
+.chat-welcome-desc {
+  font-size: 13px;
   color: #999;
+  text-align: center;
+  line-height: 1.6;
+}
+
+.chat-loading {
+  padding: 32px 0;
+  text-align: center;
+}
+
+.chat-loading-text {
+  font-size: 13px;
+  color: #999;
+}
+
+.chat-msg {
+  margin-bottom: 12px;
+}
+
+/* 行布局 */
+.msg-row {
+  display: flex;
+  flex-direction: row;
+  margin-bottom: 12px;
+}
+
+.msg-row-user {
+  justify-content: flex-end;
+}
+
+.msg-row-ai {
+  justify-content: flex-start;
+}
+
+.msg-row-tool {
+  justify-content: center;
+}
+
+/* 用户气泡 */
+.msg-bubble-user {
+  max-width: 78%;
+  background: #1677ff;
+  color: #fff;
+  font-size: 15px;
+  line-height: 1.5;
+  padding: 10px 14px;
+  border-radius: 12px 12px 2px 12px;
+  word-break: break-all;
+}
+
+/* 工具调用轨迹（灰色提示条） */
+.msg-tool {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  max-width: 85%;
+  background: #eee;
+  border-radius: 10px;
+  padding: 6px 12px;
+}
+
+.msg-tool-icon {
+  font-size: 13px;
+  color: #999;
+  margin-right: 6px;
+}
+
+.msg-tool-text {
+  font-size: 12px;
+  color: #888;
+  line-height: 1.4;
+}
+
+/* AI 气泡 */
+.msg-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 18px;
+  background: #1677ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 10px;
+  flex-shrink: 0;
+}
+
+.msg-avatar-text {
+  font-size: 13px;
+  color: #fff;
+  font-weight: 600;
+}
+
+.msg-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  max-width: 85%;
+}
+
+.msg-bubble-ai {
+  max-width: 100%;
+  background: #fff;
+  color: #333;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 10px 14px;
+  border-radius: 12px 12px 12px 2px;
+  word-break: break-all;
+  box-sizing: border-box;
+}
+
+.msg-typing {
+  color: #999;
+  font-size: 14px;
+}
+
+/* 确认卡片 */
+.msg-card {
+  margin-top: 8px;
+  width: 100%;
+  background: #fff;
+  border-radius: 12px;
+  padding: 12px 14px;
+  box-sizing: border-box;
+  border: 1px solid #e8e8e8;
+}
+
+.msg-card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.msg-card-payload {
+  background: #fafafa;
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+}
+
+.msg-card-row {
+  display: flex;
+  flex-direction: row;
+  padding: 3px 0;
+}
+
+.msg-card-label {
+  width: 76px;
+  font-size: 12px;
+  color: #999;
+  flex-shrink: 0;
+}
+
+.msg-card-value {
+  flex: 1;
+  font-size: 13px;
+  color: #333;
+  word-break: break-all;
+}
+
+.msg-card-btns {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+}
+
+.msg-card-btn {
+  font-size: 14px;
+  color: #666;
+  background: #f5f5f5;
+  border-radius: 16px;
+  padding: 6px 20px;
+  margin-left: 10px;
+}
+
+.msg-card-btn-primary {
+  color: #fff;
+  background: #1677ff;
+}
+
+.msg-card-status {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.msg-card-success {
+  font-size: 13px;
+  color: #52c41a;
+}
+
+.msg-card-fail {
+  font-size: 13px;
+  color: #ff4d4f;
+}
+
+.msg-card-loading {
+  font-size: 13px;
+  color: #999;
+}
+
+/* 免责声明 */
+.msg-disclaimer {
+  margin-top: 6px;
+  font-size: 11px;
+  color: #bbb;
+}
+
+/* 失败气泡 + 重试 */
+.msg-failed {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  background: #fff1f0;
+  border-radius: 10px;
+  padding: 8px 12px;
+  border: 1px solid #ffccc7;
+}
+
+.msg-failed-text {
+  flex: 1;
+  font-size: 13px;
+  color: #cf1322;
+}
+
+.msg-retry {
+  font-size: 13px;
+  color: #1677ff;
+  padding: 2px 12px;
+  border: 1px solid #1677ff;
+  border-radius: 14px;
+  margin-left: 12px;
+}
+
+/* ==================== 输入区 ==================== */
+.chat-input-bar {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  padding: 10px 12px;
+  background: #fff;
+  border-top: 1px solid #eee;
+  flex-shrink: 0;
+}
+
+.chat-input {
+  flex: 1;
+  min-height: 38px;
+  max-height: 96px;
+  font-size: 15px;
+  padding: 8px 12px;
+  background: #f5f5f5;
+  border-radius: 10px;
+  box-sizing: border-box;
+}
+
+.chat-input-placeholder {
+  color: #bbb;
+}
+
+.chat-send {
+  margin-left: 10px;
+  height: 38px;
+  padding: 0 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1677ff;
+  border-radius: 19px;
+}
+
+.chat-send-disabled {
+  background: #c6d8f5;
+}
+
+.chat-send-text {
+  font-size: 14px;
+  color: #fff;
+}
+
+/* ==================== 会话列表弹层 ==================== */
+.session-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 100;
+}
+
+.session-panel {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-height: 62vh;
+  background: #fff;
+  border-radius: 16px 16px 0 0;
+  z-index: 101;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.session-panel-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border-bottom: 1px solid #f0f0f0;
+  flex-shrink: 0;
+}
+
+.session-panel-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.session-new {
+  padding: 6px 14px;
+  background: #1677ff;
+  border-radius: 16px;
+}
+
+.session-new-text {
+  font-size: 13px;
+  color: #fff;
+}
+
+.session-list {
+  flex: 1;
+  overflow: hidden;
+  max-height: 46vh;
+}
+
+.session-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 14px 16px;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.session-item-active {
+  background: #f0f6ff;
+}
+
+.session-item-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.session-item-title {
+  font-size: 15px;
+  color: #333;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   margin-bottom: 4px;
 }
 
-.placeholder-hint {
+.session-item-time {
   font-size: 12px;
-  color: #ccc;
+  color: #bbb;
+}
+
+.session-item-del {
+  margin-left: 12px;
+  padding: 6px 10px;
+}
+
+.session-item-del-text {
+  font-size: 13px;
+  color: #ff4d4f;
+}
+
+.session-empty {
+  padding: 48px 0;
+  text-align: center;
+}
+
+.session-empty-text {
+  font-size: 13px;
+  color: #bbb;
 }

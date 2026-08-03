@@ -43,13 +43,30 @@ public class AgentGateway {
             .build();
 
     /**
-     * 转发对话请求并透传 SSE 流。
+     * 转发对话请求并透传 SSE 流（SSE 端点用，09 ticket）。
      *
      * @param patientId 操作人 patientId（来自 C 端 JWT）
      * @param request   对话请求（含全量历史）
      * @return SSE 响应（StreamingResponseBody 字节级透传）
      */
     public ResponseEntity<StreamingResponseBody> stream(String patientId, ChatStreamRequest request) {
+        StreamingResponseBody srb = outputStream -> {
+            try (InputStream in = openStream(patientId, request)) {
+                in.transferTo(outputStream);
+            }
+        };
+        return ResponseEntity.ok()
+                .contentType(MediaType.TEXT_EVENT_STREAM)
+                .body(srb);
+    }
+
+    /**
+     * 打开到 Agent 的 SSE 连接，返回响应体输入流（WS 网关用，ticket 10）。
+     * <p>
+     * 连接失败/超时/非 200 → {@link AgentUnavailableException}（WS 网关 close 1011，ADR-0014 修订）。
+     * 调用方负责关闭流。首 token 等待上限 {@code firstTokenTimeoutMs}，拿到响应头后流式不限时。
+     */
+    public InputStream openStream(String patientId, ChatStreamRequest request) {
         URI uri = URI.create(agentProperties.getBaseUrl() + "/agent/chat");
         HttpRequest httpRequest = buildHttpRequest(uri, patientId, request);
 
@@ -73,15 +90,7 @@ public class AgentGateway {
             log.warn("Agent 服务返回异常状态: http={}", response.statusCode());
             throw new AgentUnavailableException("Agent 服务错误: HTTP " + response.statusCode());
         }
-
-        StreamingResponseBody srb = outputStream -> {
-            try (InputStream in = response.body()) {
-                in.transferTo(outputStream);
-            }
-        };
-        return ResponseEntity.ok()
-                .contentType(MediaType.TEXT_EVENT_STREAM)
-                .body(srb);
+        return response.body();
     }
 
     private HttpRequest buildHttpRequest(URI uri, String patientId, ChatStreamRequest request) {

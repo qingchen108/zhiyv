@@ -6,6 +6,10 @@ declare function getApp(): any;
 declare function Component(options: Record<string, unknown>): void;
 declare var console: any;
 
+/** 小程序运行时定时器（lib 不含 DOM，自行声明） */
+declare function setTimeout(handler: () => void, timeout?: number): number;
+declare function clearTimeout(handle: number): void;
+
 declare namespace my {
   /** 发起网络请求 */
   function request(options: {
@@ -93,4 +97,45 @@ declare namespace my {
 
   /** 停止下拉刷新 */
   function stopPullDownRefresh(): void;
+
+  /** 建立 WebSocket 连接（ticket 10 对话流，header 可带 Authorization） */
+  function connectSocket(options: {
+    url: string;
+    header?: Record<string, string>;
+    success?: (res: any) => void;
+    fail?: (err: any) => void;
+  }): void;
+
+  /** WebSocket 连接打开回调 */
+  function onSocketOpen(callback: (res: any) => void): void;
+
+  /** WebSocket 收到消息回调 */
+  function onSocketMessage(callback: (res: { data: string | ArrayBuffer }) => void): void;
+
+  /** WebSocket 连接关闭回调（code=正常关闭码 1000/1001/1005，异常如 1011） */
+  function onSocketClose(callback: (res: { code: number; reason?: string }) => void): void;
+
+  /** WebSocket 错误回调 */
+  function onSocketError(callback: (err: any) => void): void;
+
+  /** 发送 WebSocket 消息 */
+  function sendSocketMessage(options: {
+    data: string;
+    success?: () => void;
+    fail?: (err: any) => void;
+  }): void;
+
+  /** 主动关闭 WebSocket 连接 */
+  function closeSocket(options?: {
+    code?: number;
+    reason?: string;
+    success?: () => void;
+    fail?: (err: any) => void;
+  }): void;
+
+  /** 移除 WebSocket 事件监听 */
+  function offSocketMessage(callback?: (res: { data: string }) => void): void;
+  function offSocketOpen(callback?: (res: any) => void): void;
+  function offSocketClose(callback?: (res: { code: number }) => void): void;
+  function offSocketError(callback?: (err: any) => void): void;
 }

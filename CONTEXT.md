@@ -1,7 +1,7 @@
 # 智愈（SmartMed）— 技术决策上下文
 
 > 本文件记录所有已确认的技术决策，作为团队开发的单一参考来源。
-> 最后更新：2026-07-31
+> 最后更新：2026-08-03
 
 ---
 
@@ -39,7 +39,7 @@
 | 平台 | 支付宝小程序 |
 | 技术 | TypeScript + Ant Design Mini + AntV F2 |
 | 登录方式 | 启动时调 `/api/c/auth/demo-login` 获取 JWT，无需支付宝授权 |
-| 流式对话 | SSE（Server-Sent Events），Java 做代理，小程序不直连 Python |
+| 流式对话 | 小程序侧走 WebSocket 网关（`/api/c/chat/ws` 短连接，一次发送一条流），Java 内部消费 Python SSE 流并逐块转为 WS 帧；事件 JSON 结构与 5 事件协议完全一致；小程序不直连 Python（支付宝小程序无原生 SSE/分块响应能力，见 ADR-0014 修订） |
 
 ## 4. B 端（web-admin/）
 
@@ -118,12 +118,12 @@
 ## 8. 对话链路
 
 ```
-小程序 → Java /api/c/chat/stream (SSE)
-       → Java 验 JWT + 注入 X-Patient-Id
-       → 转发 Python /agent/chat (HTTP stream)
+小程序 → Java /api/c/chat/ws (WebSocket 短连接, 握手 header 带 JWT)
+       → Java 验 JWT(握手拦截器) + 注入 X-Patient-Id
+       → 转发 Python /agent/chat (HTTP SSE)
        → Python LangGraph 执行 + 工具调用
        → 工具调用: Python → Java /api/agent/tools/* (带 X-Agent-Secret + X-Patient-Id)
-       → Java 透传 SSE 事件 → 小程序逐字渲染
+       → Java 消费 SSE 流 → 逐块转 WS 帧 → 小程序逐字渲染
 ```
 
 ### SSE 事件协议（ticket 09 定稿）
@@ -138,11 +138,20 @@
 
 | 决策项 | 结论 |
 |--------|------|
-| 事件生产者 | 仅 Python（唯一生产者），Java 网关不解析不重组，字节级透传 |
+| 事件生产者 | 仅 Python（唯一生产者），Java 网关只做传输格式转换（SSE 块 → WS 帧），不解析业务语义，见 ADR-0014 修订 |
 | 扩展方式 | 后续 ticket 加新事件类型只改 Python + 前端，不动 Java |
-| 请求体 | `POST /api/c/chat/stream`，Body `{"messages": [{"role": "user"\|"assistant", "content": "..."}]}` 全量历史，无状态；前端本地缓存拼装，ticket 10 做存储后请求体不变 |
+| 小程序传输容器 | WebSocket 短连接：每次发送建一条 WS → 服务端推完本次流 → done 后关闭；WS 帧为 JSON `{"event": "...", "data": {...}}`，字段与 SSE 5 事件完全一致，前端按 event 分发 |
+| WS 鉴权 | 握手 header `Authorization: Bearer <C 端 JWT>`，Spring 握手拦截器校验并注入 X-Patient-Id；失败拒绝握手 |
+| 对话存储责任 | 前端负责保存（Java 网关零业务解析）；首条消息时创建会话，title=首条消息前端截断 ≤20 字 |
+| 保存粒度 | done 后前端每轮一次批量原子保存（user + tool×N + assistant，POST /messages 一个事务）；失败轮次不落库，仅本地错误气泡 |
+| 轨迹与卡片落库 | tool_call 累积为 TOOL 消息落库（role=TOOL + tool_trace JSONB，表结构已预留）；card 事件不落库不重渲染（草稿 30min 过期，卡片是一次性交互 UI） |
+| 会话 API | POST/GET `/api/c/chat/sessions`、GET/POST `/api/c/chat/sessions/{id}/messages`、DELETE `/api/c/chat/sessions/{id}`（物理删除级联消息）；归属校验 session.patient_id=JWT，非本人一律 404 |
+| 历史加载 | 后端为准；本地缓存（storage key=sessionId）仅作同页会话切换快速渲染兜底 |
+| 发送并发 | 串行：流式进行中禁用输入与发送，上一轮结束后才可发下一轮 |
+| 失败恢复 | error 事件/WS 连接失败/30s 无事件 → 该轮显示失败气泡 + 重试按钮（原样重发该轮，新建 WS 流） |
+| 请求载荷 | WS 连接建立后首帧 JSON `{"messages": [{"role": "user"\|"assistant", "content": "..."}]}` 全量历史，无状态；前端本地缓存拼装，ticket 10 做存储后请求载荷不变 |
 | 患者身份 | 前端不传 patientId，Java 从 JWT 解析注入 `X-Patient-Id`（身份信息由 Java 注入的可信链） |
-| Java 侧失败语义 | Java 转发失败（Python 未启动/超时）返回 HTTP 502，Java 不发 error 事件（协议纯净）；前端对非 200 显示兜底文案 |
+| Java 侧失败语义 | Java 转发 Python 失败（未启动/超时）→ WS 直接关闭（close code 1011），Java 不发 error 帧（error 仍为 Python 专属事件，协议纯净）；前端 onClose 按 code 显示兜底文案（对应旧 SSE 语义的 HTTP 502） |
 | 长上下文 | token 超限截断是 Python 内部策略（保留最近 N 条），不进契约 |
 | Python 工程 | HTTP 框架 FastAPI + uvicorn（StreamingResponse 出 SSE）；依赖管理 pip + venv + requirements.txt（dev 加 pytest）；pytest 三类骨架测试：工具契约加载（11 个 schema 合法）/ 意图路由单测（mock LLM）/ SSE 输出格式 |
 | 验证策略 | `AGENT_ECHO_MODE`（默认 false）：true 时绕过 LLM 直接回显 delta 事件，用于无 API key 的链路 smoke；false 时真实 LLM 意图分类 + 生成 |
@@ -205,6 +214,9 @@
 | 周复制 | 将源周排班批量复制到目标周，total 照抄、remaining 重置为 total，已有组合跳过 |
 | 挂号凭证（Registration Voucher） | 确认挂号成功后返回的完整挂号记录 JSON，含 reg_no、医生、科室、日期、班次、状态 |
 | 确认令牌（Confirm Token） | 草稿创建时生成的 SHA-256 一次性凭证，确认时比对，草稿消费后随 key 删除失效 |
+| 会话（Chat Session） | 一次连续 AI 对话的容器，首条消息时创建（title=首条消息截断 ≤20 字），按操作人隔离，仅本人可见 |
+| 对话消息（Chat Message） | 会话内一条消息，role 分 USER/ASSISTANT/TOOL；TOOL 消息承载工具调用轨迹（tool_trace JSONB），card 事件不入库 |
+| WS 传输帧（WS Frame） | Java WebSocket 网关转发给小程序的 JSON 帧 `{"event", "data"}`，事件语义与 SSE 5 事件（delta/tool_call/card/done/error）一致 |
 | 操作人（Operator） | 发起挂号操作的登录患者（JWT 身份），帮家人挂时操作人≠就诊人 |
 | 实际就诊人（Visitor） | 真正接受诊疗的个体，可以是操作人本人或其健康档案中的家庭成员 |
 | 挂号单号（reg_no） | 挂号记录唯一标识，格式 REG+yyyyMMdd+序列号，DB 序列全局递增 |

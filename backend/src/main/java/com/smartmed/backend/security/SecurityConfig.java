@@ -56,6 +56,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**", "/api/b/auth/refresh", "/api/c/auth/demo-login", "/api/health").permitAll()
                         // Agent 工具路由：permitAll + AgentSecretFilter 校验 X-Agent-Secret（09，ADR-0015）
                         .requestMatchers("/api/agent/tools/**").permitAll()
+                        // 对话 WS 端点：握手请求放行，鉴权由 ChatWsHandshakeInterceptor 完成（10，ADR-0014 修订）
+                        .requestMatchers("/api/c/chat/ws").permitAll()
                         // B/C 端：需认证 + typ 匹配（access 绑定 TypAuthorizationManager 做前缀分权）
                         .requestMatchers("/api/b/**", "/api/c/**").access(typAuthorizationManager)
                         // 其他拒绝
