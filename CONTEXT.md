@@ -189,6 +189,28 @@
 
 ---
 
+## 11. Agent 挂号与购药（ticket 12/14）
+
+| 决策项 | 结论 |
+|--------|------|
+| 工具 handler 模式 | Agent handler 直接委托既有 Service（`create_registration_draft` → `RegistrationService`，`create_order_draft` → `OrderService`），不建第二套 Service，见 ADR-0016 |
+| Agent 身份注入 | patientId 从 `X-Patient-Id` header 取（AgentToolFilter 已注入），与 C 端 JWT 取法不同但 Service 层共享 |
+| query_schedule 返回 | 扁平列表（schedule_id / doctor_id / doctor_name / department_name / schedule_date / time_period / remaining_slots / status），过滤 SUSPENDED 和余量=0 |
+| query_pharmacy_stock | 保持单 drug_id 查询（不改 tools.json），多药处方 Agent 多次调用后 LLM 侧聚合 |
+| 家庭成员识别 | 不新增工具，复用 `get_medical_record` 返回的家庭成员列表 |
+| 挂号确认卡片 | `type=registration_confirm`，`action=/api/c/registrations/confirm`，payload 含 draftKey / confirmToken / scheduleId / doctorName / departmentName / scheduleDate / timePeriod / timeRange / familyMemberId（nullable） |
+| 购药确认接口 | `POST /api/c/orders/confirm`，Body `{ draftKey, confirmToken, prescriptionId, pharmacyId }`，见 ADR-0017 |
+| 购药草稿 key | `order_draft:{patientId}:{prescriptionId}`，TTL 30min |
+| 购药确认卡片 | `type=order_confirm`，`action=/api/c/orders/confirm`，payload 含 draftKey / confirmToken / prescriptionId / pharmacyId / pharmacyName / items / totalAmount |
+| 购药库存扣减 | confirm 同事务 SQL 扣减 `drug_pharmacy_stock.stock`，stock 不足 → 400；不引入 Redis 并发控制；种子数据调大库存 |
+| 用药提醒生成 | confirm 同事务自动创建（遍历处方明细按 frequency 关键词匹配），`create_reminder` 工具降级为手动补设 |
+| frequency 解析 | "1 次"→08:00 / "2 次"→08:00,18:00 / "3 次"→08:00,12:00,18:00 / 无法匹配→次日 08:00 + frequency 原文保留 |
+| 凭证卡片渲染 | 挂号凭证和购药凭证均由前端本地渲染（confirm API 返回 VO），不进 SSE 事件流，Agent 不参与 |
+| confirm 失败恢复 | 不自动回调 Agent，草稿已被 DEL 卡片失效，前端弹 toast，用户自然语言发起新一轮对话 |
+| 就诊提醒 | 不实现调度（Out of Scope），Agent 仅文案提示"就诊前 1 天会提醒您" |
+
+---
+
 ## 术语表（Glossary）
 
 | 术语 | 定义 |
@@ -232,3 +254,6 @@
 | 处方明细（Prescription Item） | 处方中的单条药品+用法用量记录（drug_id/usage_method/dosage/frequency/remark） |
 | 处方模板（Prescription Template） | 医生个人复用的药+用法集合，content JSONB 与开方 items 同构，开方时预填来源，后端不感知 |
 | 病历（Medical Record） | 以实际就诊人为中心聚合的历史挂号+问诊+处方+过敏史，不按医生隔离，跨医生可见 |
+| 购药订单（Drug Order） | 患者确认购药后创建的订单记录，关联 prescription_id + pharmacy_id，含总价和配送信息 |
+| 用药提醒（Medication Reminder） | 购药确认后自动生成的服药提醒计划，按处方 frequency 关键词匹配生成提醒时间点，status 两态 ACTIVE/DONE |
+| 药店库存扣减 | 购药 confirm 同事务 SQL 扣减 drug_pharmacy_stock.stock，stock 不足返回 400，不做 Redis 并发控制 |

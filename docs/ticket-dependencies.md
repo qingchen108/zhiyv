@@ -178,6 +178,8 @@ graph LR
 - `docs/adr/0010-registration-family-member-dual-fk.md`：家人挂号双 FK 口径，对应 `05`。
 - `docs/adr/0011-consultation-auto-create-on-registration.md`：确认挂号自动创建问诊，对应 `06`。
 - `docs/adr/0012-contraindication-check-strategy.md`：开方禁忌检测策略，对应 `06`。
+- `docs/adr/0016-agent-tool-handler-reuse.md`：Agent 工具 handler 复用既有 Service 层，对应 `12`/`14`。
+- `docs/adr/0017-order-confirm-stock-reminder.md`：购药确认接口、库存扣减与用药提醒自动生成，对应 `14`。
 
 ## 维护说明
 
