@@ -4,7 +4,7 @@
 
 **Blocked by:** 01 - 基础设施搭建
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## 实现约束（grill-with-docs 会话确认，见 ADR-0003）
 

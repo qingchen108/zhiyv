@@ -1,0 +1,6 @@
+<view class="page-placeholder">
+  <view class="placeholder-icon">📋</view>
+  <text class="placeholder-title">挂号记录</text>
+  <text class="placeholder-desc">正在开发中，敬请期待</text>
+  <text class="placeholder-hint">您可以在这里查看您的挂号记录</text>
+</view>

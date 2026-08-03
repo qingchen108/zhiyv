@@ -1,0 +1,45 @@
+<view class="page-home">
+  <view class="welcome-card">
+    <text class="welcome-title">欢迎使用智愈健康</text>
+    <text class="welcome-desc">我是您的 AI 健康助手，请告诉我您的症状或需求</text>
+  </view>
+
+  <view class="quick-actions">
+    <view class="action-item" onTap="navigateToChat">
+      <image class="action-icon" src="/images/icon-chat.png" />
+      <text class="action-label">AI 问诊</text>
+    </view>
+    <view class="action-item" onTap="navigateToRegistrations">
+      <image class="action-icon" src="/images/icon-reg.png" />
+      <text class="action-label">挂号记录</text>
+    </view>
+    <view class="action-item" onTap="navigateToPrescriptions">
+      <image class="action-icon" src="/images/icon-prescription.png" />
+      <text class="action-label">我的处方</text>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="section-header">
+      <text class="section-title">快速功能</text>
+    </view>
+    <view class="feature-grid">
+      <view class="feature-item" onTap="navigateToChat">
+        <text class="feature-emoji">🤖</text>
+        <text class="feature-label">AI 导诊</text>
+      </view>
+      <view class="feature-item" onTap="navigateToFamilyMembers">
+        <text class="feature-emoji">👨‍👩‍👧‍👦</text>
+        <text class="feature-label">家人管理</text>
+      </view>
+      <view class="feature-item" onTap="navigateToProfile">
+        <text class="feature-emoji">📋</text>
+        <text class="feature-label">健康档案</text>
+      </view>
+      <view class="feature-item">
+        <text class="feature-emoji">💊</text>
+        <text class="feature-label">用药提醒</text>
+      </view>
+    </view>
+  </view>
+</view>

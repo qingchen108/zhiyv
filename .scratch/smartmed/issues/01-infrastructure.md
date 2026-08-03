@@ -4,7 +4,7 @@
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [x] Docker Compose 文件可一键启动 PostgreSQL（pgvector/pgvector:pg16 镜像，含 pgvector 扩展）、Redis、Neo4j（init.cypher 由 neo4j-init sidecar 容器用 cypher-shell 在 Neo4j 就绪后执行，`docker compose up` 后图谱即可查询）
 - [x] PostgreSQL DDL 脚本创建全部 20 张业务表（含索引、外键，含 hospital 表 + drug_pharmacy_stock 桥表）

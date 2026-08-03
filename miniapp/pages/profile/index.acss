@@ -1,0 +1,198 @@
+.page-profile {
+  padding: 16px;
+  background: #f5f5f5;
+  min-height: 100vh;
+}
+
+.profile-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #fff;
+  border-radius: 12px;
+  padding: 32px 16px;
+  margin-bottom: 16px;
+}
+
+.avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 32px;
+  background: #1677ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.avatar-text {
+  font-size: 28px;
+  color: #fff;
+  font-weight: 600;
+}
+
+.patient-name {
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.patient-phone {
+  font-size: 14px;
+  color: #999;
+}
+
+.info-section {
+  background: #fff;
+  border-radius: 12px;
+  padding: 0 16px;
+  margin-bottom: 16px;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 14px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.info-item:last-child {
+  border-bottom: none;
+}
+
+.info-item-textarea {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.info-label {
+  font-size: 14px;
+  color: #666;
+  width: 80px;
+  flex-shrink: 0;
+}
+
+.info-value {
+  flex: 1;
+  font-size: 14px;
+  color: #333;
+  text-align: right;
+}
+
+.info-textarea {
+  width: 100%;
+  min-height: 60px;
+  font-size: 14px;
+  color: #333;
+  margin-top: 8px;
+  padding: 8px;
+  background: #fafafa;
+  border-radius: 8px;
+}
+
+.action-section {
+  margin-bottom: 16px;
+}
+
+.save-btn {
+  width: 100%;
+  height: 44px;
+  line-height: 44px;
+  background: #1677ff;
+  color: #fff;
+  font-size: 16px;
+  border-radius: 22px;
+  text-align: center;
+}
+
+.save-btn[disabled] {
+  background: #d9d9d9;
+  color: #999;
+}
+
+.family-section {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.section-header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.section-action {
+  font-size: 14px;
+  color: #1677ff;
+}
+
+.family-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.family-item:last-child {
+  border-bottom: none;
+}
+
+.family-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+  background: #e6f4ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12px;
+}
+
+.family-avatar-text {
+  font-size: 16px;
+  color: #1677ff;
+  font-weight: 600;
+}
+
+.family-info {
+  flex: 1;
+}
+
+.family-name {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+}
+
+.family-relation {
+  font-size: 12px;
+  color: #999;
+  margin-top: 2px;
+}
+
+.family-arrow {
+  font-size: 20px;
+  color: #ccc;
+}
+
+.family-empty {
+  padding: 24px 0;
+  text-align: center;
+}
+
+.family-empty-text {
+  font-size: 14px;
+  color: #999;
+}

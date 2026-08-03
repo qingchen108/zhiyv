@@ -1,0 +1,6 @@
+<view class="page-placeholder">
+  <view class="placeholder-icon">🤖</view>
+  <text class="placeholder-title">AI 对话</text>
+  <text class="placeholder-desc">正在开发中，敬请期待</text>
+  <text class="placeholder-hint">您将可以与 AI 助手进行智能问诊</text>
+</view>

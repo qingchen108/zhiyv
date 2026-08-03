@@ -1,0 +1,62 @@
+<view class="page-profile">
+  <view class="profile-card">
+    <view class="avatar">
+      <text class="avatar-text">{{patientName.charAt(0)}}</text>
+    </view>
+    <text class="patient-name">{{patientName}}</text>
+    <text class="patient-phone">{{phone}}</text>
+  </view>
+
+  <view class="info-section">
+    <view class="info-item">
+      <text class="info-label">姓名</text>
+      <input class="info-value" value="{{name}}" onInput="onNameInput" placeholder="请输入姓名" />
+    </view>
+    <view class="info-item">
+      <text class="info-label">性别</text>
+      <picker mode="selector" range="{{genderOptions}}" value="{{genderIndex}}" onChange="onGenderChange">
+        <text class="info-value">{{gender || '请选择'}}</text>
+      </picker>
+    </view>
+    <view class="info-item">
+      <text class="info-label">出生日期</text>
+      <picker mode="date" value="{{birthDate}}" onChange="onBirthDateChange">
+        <text class="info-value">{{birthDate || '请选择'}}</text>
+      </picker>
+    </view>
+    <view class="info-item">
+      <text class="info-label">年龄</text>
+      <text class="info-value">{{age}}岁</text>
+    </view>
+    <view class="info-item info-item-textarea">
+      <text class="info-label">过敏史</text>
+      <textarea class="info-textarea" value="{{allergyHistory}}" onInput="onAllergyInput" placeholder="请填写过敏史（选填）" />
+    </view>
+  </view>
+
+  <view class="action-section">
+    <button class="save-btn" onTap="onSave" disabled="{{!modified}}">保存</button>
+  </view>
+
+  <view class="family-section">
+    <view class="section-header">
+      <text class="section-title">家庭成员</text>
+      <text class="section-action" onTap="navigateToFamilyMembers">管理</text>
+    </view>
+    <view class="family-list">
+      <view class="family-item" a:for="{{familyMembers}}" a:key="id">
+        <view class="family-avatar">
+          <text class="family-avatar-text">{{item.name.charAt(0)}}</text>
+        </view>
+        <view class="family-info">
+          <text class="family-name">{{item.name}}</text>
+          <text class="family-relation">{{item.relationship}}</text>
+        </view>
+        <text class="family-arrow">›</text>
+      </view>
+      <view class="family-empty" a:if="{{familyMembers.length === 0}}">
+        <text class="family-empty-text">暂无家庭成员，点击上方"管理"添加</text>
+      </view>
+    </view>
+  </view>
+</view>

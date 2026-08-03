@@ -1,0 +1,40 @@
+<view class="page-edit-member">
+  <view class="form-section">
+    <view class="form-item">
+      <text class="form-label">姓名 <text class="required">*</text></text>
+      <input class="form-input" value="{{name}}" onInput="onNameInput" placeholder="请输入姓名" />
+    </view>
+    <view class="form-item">
+      <text class="form-label">关系 <text class="required">*</text></text>
+      <picker mode="selector" range="{{relationshipOptions}}" value="{{relationshipIndex}}" onChange="onRelationshipChange">
+        <text class="form-input form-picker">{{relationship || '请选择关系'}}</text>
+      </picker>
+    </view>
+    <view class="form-item">
+      <text class="form-label">性别</text>
+      <picker mode="selector" range="{{genderOptions}}" value="{{genderIndex}}" onChange="onGenderChange">
+        <text class="form-input form-picker">{{gender || '请选择'}}</text>
+      </picker>
+    </view>
+    <view class="form-item">
+      <text class="form-label">出生日期</text>
+      <picker mode="date" value="{{birthDate}}" onChange="onBirthDateChange">
+        <text class="form-input form-picker">{{birthDate || '请选择'}}</text>
+      </picker>
+    </view>
+    <view class="form-item">
+      <text class="form-label">手机号</text>
+      <input class="form-input" type="number" value="{{phone}}" onInput="onPhoneInput" placeholder="请输入手机号" maxlength="11" />
+    </view>
+    <view class="form-item form-item-textarea">
+      <text class="form-label">过敏史</text>
+      <textarea class="form-textarea" value="{{allergyHistory}}" onInput="onAllergyInput" placeholder="请填写过敏史（选填）" />
+    </view>
+  </view>
+
+  <view class="action-section">
+    <button class="save-btn" onTap="onSave" disabled="{{saving || !name || !relationship}}">
+      {{saving ? '保存中...' : (isEdit ? '保存修改' : '添加成员')}}
+    </button>
+  </view>
+</view>

@@ -4,7 +4,7 @@
 
 **Blocked by:** 02 - 后端骨架与鉴权
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## 实现约束（grill-with-docs 会话确认，见 ADR-0004~0007）
 
@@ -174,29 +174,29 @@ com.smartmed.backend
 ## Checklist
 
 ### 02 返工（折进 03）
-- [ ] schema：`sys_user` 加 `phone`（NOT NULL UNIQUE）、`must_change_password`（BOOLEAN NOT NULL DEFAULT false）；`username` 去 UNIQUE、允许 NULL
-- [ ] schema：`doctor` 加 `gender`、`birth_date`；不加 phone
-- [ ] seed：admin/doctor 账号补 phone + must_change_password=true；5 个种子医生补 gender + birth_date
-- [ ] `LoginRequest` 改 `{phone,password}`；`AuthService.login` 改按 phone 查
-- [ ] 登录响应 + `/me` 加 `mustChangePassword`
-- [ ] 新接口 `POST /api/b/auth/change-password`
+- [x] schema：`sys_user` 加 `phone`（NOT NULL UNIQUE）、`must_change_password`（BOOLEAN NOT NULL DEFAULT false）；`username` 去 UNIQUE、允许 NULL
+- [x] schema：`doctor` 加 `gender`、`birth_date`；不加 phone
+- [x] seed：admin/doctor 账号补 phone + must_change_password=true；5 个种子医生补 gender + birth_date
+- [x] `LoginRequest` 改 `{phone,password}`；`AuthService.login` 改按 phone 查
+- [x] 登录响应 + `/me` 加 `mustChangePassword`
+- [x] 新接口 `POST /api/b/auth/change-password`
 
 ### 后端 03 新增
-- [ ] `BaseEntity`（createdAt/updatedAt）+ `MetaObjectHandler`（Java 层全填）
-- [ ] `PageResponse<T>` 通用分页响应
-- [ ] 科室 CRUD（`/api/b/departments`，hospital_id 硬编码 1，仅 ADMIN，物理删+前置检查）
-- [ ] 医生 CRUD（`/api/b/doctors`，新建同事务建 sys_user，删除同事务删 sys_user，DOCTOR `/me` 仅改 specialty/avatar_url/intro）
-- [ ] 药品 CRUD（`/api/b/drugs`，仅 ADMIN，物理删+前置检查）
-- [ ] `DoctorVO` JOIN sys_user 取 phone + 派生 age
-- [ ] 15 个集成测试（`@Transactional` 回滚）
+- [x] `BaseEntity`（createdAt/updatedAt）+ `MetaObjectHandler`（Java 层全填）
+- [x] `PageResponse<T>` 通用分页响应
+- [x] 科室 CRUD（`/api/b/departments`，hospital_id 硬编码 1，仅 ADMIN，物理删+前置检查）
+- [x] 医生 CRUD（`/api/b/doctors`，新建同事务建 sys_user，删除同事务删 sys_user，DOCTOR `/me` 仅改 specialty/avatar_url/intro）
+- [x] 药品 CRUD（`/api/b/drugs`，仅 ADMIN，物理删+前置检查）
+- [x] `DoctorVO` JOIN sys_user 取 phone + 派生 age
+- [x] 15 个集成测试（`@Transactional` 回滚）
 
 ### B 端 03 新增
-- [ ] Umi 4 Max 项目初始化，集成 Ant Design、Zustand、Less
-- [ ] 登录页（手机号+密码）+ JWT 存 localStorage + Zustand 镜像 + 路由守卫（access 插件）
-- [ ] request 拦截器（`src/app.ts`：注入 token + 401 跳登录）
-- [ ] 科室管理页（表格 + 新增/编辑弹窗 + 删除确认）
-- [ ] 医生管理页（表格 + 表单含科室下拉、职称、gender、birthDate、phone）
-- [ ] 药品管理页（表格 + 表单）
+- [x] Umi 4 Max 项目初始化，集成 Ant Design、Zustand、Less
+- [x] 登录页（手机号+密码）+ JWT 存 localStorage + Zustand 镜像 + 路由守卫（access 插件）
+- [x] request 拦截器（`src/app.ts`：注入 token + 401 跳登录）
+- [x] 科室管理页（表格 + 新增/编辑弹窗 + 删除确认）
+- [x] 医生管理页（表格 + 表单含科室下拉、职称、gender、birthDate、phone）
+- [x] 药品管理页（表格 + 表单）
 
 ### 权限
-- [ ] 科室/药品仅 ADMIN，医生管理 ADMIN 全部 + DOCTOR 编辑本人
+- [x] 科室/药品仅 ADMIN，医生管理 ADMIN 全部 + DOCTOR 编辑本人

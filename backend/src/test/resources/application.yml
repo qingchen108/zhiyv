@@ -25,7 +25,8 @@ spring:
 smartmed:
   jwt:
     secret: ${JWT_SECRET:smartmed-dev-jwt-secret-change-me}
-    b-expire-seconds: 43200
+    b-access-expire-seconds: 1800
+    b-refresh-expire-seconds: 28800
     c-expire-seconds: 604800
   agent:
     secret: ${AGENT_SECRET:smartmed-dev-agent-secret-change-me}

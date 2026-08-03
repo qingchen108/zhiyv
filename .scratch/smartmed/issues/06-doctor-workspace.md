@@ -4,7 +4,7 @@
 
 **Blocked by:** 03 - 科室/医生/药品管理, 05 - 挂号全链路
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## 实现约束（grill-with-docs 会话确认，见 ADR-0011、ADR-0012、CONTEXT §10）
 
@@ -161,20 +161,20 @@ com.smartmed.backend
 
 ## Checklist
 
-- [ ] 后端：改 05 `RegistrationService.confirm()` 同事务插 consultation（WAITING）
-- [ ] 后端：问诊状态流转 API（start/complete，COMPLETED 同步 registration VISITED）
-- [ ] 后端：诊断保存 API（PATCH /diagnosis）
-- [ ] 后端：问诊对话消息 API（发 DOCTOR/读全部，仅 IN_PROGRESS 可发）
-- [ ] 后端：今日待接诊列表 API（分页 + 摘要截取 80 字）
-- [ ] 后端：开方 API（含禁忌检测 + warnings + force 审计）
-- [ ] 后端：禁忌检测（Neo4j 直查 Cypher，过敏冲突 + 相互作用，降级不阻断）
-- [ ] 后端：患者病历聚合 API（实际就诊人维度）
-- [ ] 后端：处方模板 CRUD API（本人，跨医生 403）
-- [ ] 后端：knowledge 包 + Neo4jContraindicationService
-- [ ] B 端：路由 + 菜单分流（isDoctor/isAdmin）+ 首页按角色重定向
-- [ ] B 端：待接诊列表页（表格 + 状态标签 + 摘要预览）
-- [ ] B 端：问诊详情页（左右分栏：左摘要 + 右对话 + 底部诊断/开方）
-- [ ] B 端：处方编辑器（药品搜索下拉 + 用法用量 + 模板预填 + 禁忌警告展示 + force 确认）
-- [ ] B 端：病历查看弹窗
-- [ ] B 端：处方模板管理页
-- [ ] 后端：12 个集成测试
+- [x] 后端：改 05 `RegistrationService.confirm()` 同事务插 consultation（WAITING）
+- [x] 后端：问诊状态流转 API（start/complete，COMPLETED 同步 registration VISITED）
+- [x] 后端：诊断保存 API（PATCH /diagnosis）
+- [x] 后端：问诊对话消息 API（发 DOCTOR/读全部，仅 IN_PROGRESS 可发）
+- [x] 后端：今日待接诊列表 API（分页 + 摘要截取 80 字）
+- [x] 后端：开方 API（含禁忌检测 + warnings + force 审计）
+- [x] 后端：禁忌检测（Neo4j 直查 Cypher，过敏冲突 + 相互作用，降级不阻断）
+- [x] 后端：患者病历聚合 API（实际就诊人维度）
+- [x] 后端：处方模板 CRUD API（本人，跨医生 403）
+- [x] 后端：knowledge 包 + Neo4jContraindicationService
+- [x] B 端：路由 + 菜单分流（isDoctor/isAdmin）+ 首页按角色重定向
+- [x] B 端：待接诊列表页（表格 + 状态标签 + 摘要预览）
+- [x] B 端：问诊详情页（左右分栏：左摘要 + 右对话 + 底部诊断/开方）
+- [x] B 端：处方编辑器（药品搜索下拉 + 用法用量 + 模板预填 + 禁忌警告展示 + force 确认）
+- [x] B 端：病历查看弹窗
+- [x] B 端：处方模板管理页
+- [x] 后端：12 个集成测试
