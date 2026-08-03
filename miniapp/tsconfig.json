@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "ES5",
+    "module": "commonjs",
+    "lib": ["ES2018"],
+    "strict": false,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "./",
+    "rootDir": "./",
+    "sourceMap": false,
+    "declaration": false,
+    "typeRoots": ["./types"]
+  },
+  "include": [
+    "app.ts",
+    "pages/**/*.ts",
+    "utils/**/*.ts",
+    "types/**/*.d.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

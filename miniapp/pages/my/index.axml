@@ -1,7 +1,7 @@
 <view class="page-my">
   <view class="profile-card">
     <view class="avatar">
-      <text class="avatar-text">{{patientName.charAt(0)}}</text>
+      <text class="avatar-text">{{avatarChar}}</text>
     </view>
     <text class="patient-name">{{patientName}}</text>
     <text class="patient-phone">{{phone}}</text>

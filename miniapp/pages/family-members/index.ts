@@ -14,13 +14,15 @@ Page({
     }>,
     loading: false,
     currentMemberId: 0,
+    currentMemberName: '',
     patientName: '',
   },
 
   onShow() {
     const app = getApp();
+    const memberId = app.globalData.currentMemberId || 0;
     this.setData({
-      currentMemberId: app.globalData.currentMemberId || 0,
+      currentMemberId: memberId,
       patientName: app.globalData.patientName || '',
     });
     this.loadMembers();
@@ -30,11 +32,22 @@ Page({
     this.setData({ loading: true });
     getFamilyMembers().then((res) => {
       if (res.code === 200 && res.data) {
-        this.setData({ members: res.data });
+        const enriched = res.data.map(m => ({
+          ...m,
+          firstChar: m.name ? m.name.charAt(0) : '',
+          canDelete: m.name !== this.data.patientName,
+        }));
+        this.setData({ members: enriched });
+        this.updateCurrentMemberName();
       }
     }).finally(() => {
       this.setData({ loading: false });
     });
+  },
+
+  updateCurrentMemberName() {
+    const member = this.data.members.find(m => m.id === this.data.currentMemberId);
+    this.setData({ currentMemberName: member ? member.name : '未知' });
   },
 
   // 判断是否为患者本人（通过姓名匹配）
@@ -56,7 +69,7 @@ Page({
     const { id, name } = e.currentTarget.dataset;
     const app = getApp();
     app.globalData.currentMemberId = id;
-    this.setData({ currentMemberId: id });
+    this.setData({ currentMemberId: id, currentMemberName: name });
     my.showToast({ content: `已切换至「${name}」` });
   },
 
@@ -64,7 +77,7 @@ Page({
   onSwitchToSelf() {
     const app = getApp();
     app.globalData.currentMemberId = 0;
-    this.setData({ currentMemberId: 0 });
+    this.setData({ currentMemberId: 0, currentMemberName: '' });
     my.showToast({ content: '已切换回本人' });
   },
 

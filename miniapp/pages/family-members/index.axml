@@ -1,7 +1,7 @@
 <view class="page-family-members">
   <!-- 当前就诊人提示 -->
   <view class="active-member-bar" a:if="{{currentMemberId > 0}}" onTap="onSwitchToSelf">
-    <text class="active-member-text">当前就诊人：{{members.find(m => m.id === currentMemberId)?.name || '未知'}}</text>
+    <text class="active-member-text">当前就诊人：{{currentMemberName}}</text>
     <text class="active-member-action">切换回本人</text>
   </view>
 
@@ -13,7 +13,7 @@
   <view class="member-list">
     <view class="member-item" a:for="{{members}}" a:key="id" onTap="navigateToEdit" data-id="{{item.id}}">
       <view class="member-avatar" class="{{currentMemberId === item.id ? 'member-avatar active' : 'member-avatar'}}">
-        <text class="member-avatar-text">{{item.name.charAt(0)}}</text>
+        <text class="member-avatar-text">{{item.firstChar}}</text>
       </view>
       <view class="member-info">
         <view class="member-name-row">
@@ -27,8 +27,8 @@
         </view>
       </view>
       <view class="member-actions">
-        <text class="member-set-active" onTap="onSetActive" data-id="{{item.id}}" data-name="{{item.name}}" catchTap>设为当前</text>
-        <text class="member-delete" a:if="{{!isSelf(item.name)}}" onTap="onDelete" data-id="{{item.id}}" data-name="{{item.name}}" catchTap>删除</text>
+        <text class="member-set-active" onTap="onSetActive" data-id="{{item.id}}" data-name="{{item.name}}">设为当前</text>
+        <text class="member-delete" a:if="{{item.canDelete}}" onTap="onDelete" data-id="{{item.id}}" data-name="{{item.name}}">删除</text>
       </view>
     </view>
   </view>

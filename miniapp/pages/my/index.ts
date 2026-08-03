@@ -6,12 +6,15 @@ Page({
     phone: '',
     gender: '',
     age: 0,
+    avatarChar: '',
   },
 
   onShow() {
     const app = getApp();
+    const name = app.globalData.patientName || '用户';
     this.setData({
-      patientName: app.globalData.patientName || '用户',
+      patientName: name,
+      avatarChar: name.charAt(0),
     });
     this.loadProfile();
   },
@@ -19,11 +22,13 @@ Page({
   loadProfile() {
     getPatientProfile().then((res) => {
       if (res.code === 200 && res.data) {
+        const name = res.data.name;
         this.setData({
-          patientName: res.data.name,
+          patientName: name,
           phone: res.data.phone,
           gender: res.data.gender || '',
           age: res.data.age || 0,
+          avatarChar: name.charAt(0),
         });
       }
     });
