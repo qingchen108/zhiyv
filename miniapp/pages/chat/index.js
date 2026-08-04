@@ -415,7 +415,16 @@ Page({
         })
             .then(function (res) {
             if (res.code === 200) {
-                _this.setCardStatus(index, 'success', '操作成功');
+                _this.setCardStatus(index, 'success', '挂号成功');
+                // 追加 AI 成功提示文案（挂号场景）
+                var voucherMsg = {
+                    key: "v".concat(Date.now()),
+                    role: 'ASSISTANT',
+                    content: '✅ 挂号成功！请按时就诊。\n\n就诊前 1 天会提醒您，请保持手机畅通。\n\n🤖 AI 建议仅供参考，不能替代医生诊断。',
+                };
+                var list = _this.data.messages.concat([voucherMsg]);
+                _this.setData({ messages: list });
+                _this.scrollToBottom();
             }
             else {
                 _this.setCardStatus(index, 'fail', res.message || '操作失败');

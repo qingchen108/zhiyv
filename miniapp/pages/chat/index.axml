@@ -46,19 +46,21 @@
           <view class="msg-card" a:if="{{item.card}}" data-index="{{index}}" onTap="onCardTap">
             <view class="msg-card-title">{{item.card.title}}</view>
             <view class="msg-card-payload">
-              <view class="msg-card-row" a:for="{{item.card.payload}}" a:for-item="pv" a:for-index="pk" a:key="pk" a:if="{{pk !== 'confirmToken' && pk !== 'draftKey'}}">
+              <view class="msg-card-row" a:for="{{item.card.payload}}" a:for-item="pv" a:for-index="pk" a:key="pk" a:if="{{pk !== 'confirmToken' && pk !== 'draftKey' && pk !== 'scheduleId' && pk !== 'familyMemberId'}}">
                 <text class="msg-card-label">{{pk}}</text>
                 <text class="msg-card-value">{{pv}}</text>
               </view>
             </view>
-            <view class="msg-card-status" a:if="{{item.card.status === 'success'}}">
-              <text class="msg-card-success">✓ {{item.card.result || '操作成功'}}</text>
+            <!-- 成功后凭证卡片 -->
+            <view class="msg-card-voucher" a:if="{{item.card.status === 'success'}}">
+              <text class="msg-card-voucher-text">✅ {{item.card.result || '操作成功'}}</text>
+              <text class="msg-card-voucher-hint">就诊前 1 天会提醒您</text>
             </view>
             <view class="msg-card-status" a:if="{{item.card.status === 'fail'}}">
               <text class="msg-card-fail">✕ {{item.card.result || '操作失败'}}</text>
             </view>
             <view class="msg-card-btns" a:if="{{!item.card.status || item.card.status === 'idle'}}">
-              <view class="msg-card-btn msg-card-btn-primary" data-index="{{index}}" catchTap="onCardTap">确认</view>
+              <view class="msg-card-btn msg-card-btn-primary" data-index="{{index}}" catchTap="onCardTap">确认挂号</view>
               <view class="msg-card-btn" data-index="{{index}}" catchTap="onCardCancel">取消</view>
             </view>
             <view class="msg-card-status" a:if="{{item.card.status === 'loading'}}">
