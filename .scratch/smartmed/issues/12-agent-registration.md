@@ -4,7 +4,7 @@
 
 **Blocked by:** 11 — Agent 智能导诊, 05 — 挂号全链路
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## 决策（grill-with-docs 2026-08-03）
 
@@ -18,12 +18,12 @@
 
 ## 验收标准
 
-- [ ] Java 工具实现：query_schedule（按科室/医生/日期查可用排班和余量，返回扁平列表）
-- [ ] Java 工具实现：create_registration_draft（委托 RegistrationService.createDraft，X-Patient-Id 注入身份）
-- [ ] Agent 展示排班选项 → 用户选择 → 调用草稿工具 → 生成确认卡片（card 事件）
-- [ ] 确认卡片内容：type=registration_confirm + payload 含完整草稿信息
-- [ ] 用户确认 → 前端直调 /api/c/registrations/confirm → 成功前端本地渲染凭证卡片
-- [ ] 号源刚被抢完 → 前端 toast 提示 → 用户自然语言重新发起 → Agent 重查排班
-- [ ] 帮家人挂号：Agent 通过 get_medical_record 确认 family_member_id
-- [ ] Agent 挂号成功文案提示"就诊前 1 天会提醒您"
-- [ ] pytest 测试：正常挂号流程、号源不足场景、草稿过期场景
+- [x] Java 工具实现：query_schedule（按科室/医生/日期查可用排班和余量，返回扁平列表）
+- [x] Java 工具实现：create_registration_draft（委托 RegistrationService.createDraft，X-Patient-Id 注入身份）
+- [x] Agent 展示排班选项 → 用户选择 → 调用草稿工具 → 生成确认卡片（card 事件）
+- [x] 确认卡片内容：type=registration_confirm + payload 含完整草稿信息
+- [x] 用户确认 → 前端直调 /api/c/registrations/confirm → 成功前端本地渲染凭证卡片
+- [x] 号源刚被抢完 → 前端 toast 提示 → 用户自然语言重新发起 → Agent 重查排班
+- [x] 帮家人挂号：Agent 通过 get_medical_record 确认 family_member_id
+- [x] Agent 挂号成功文案提示"就诊前 1 天会提醒您"
+- [x] pytest 测试：正常挂号流程、号源不足场景、草稿过期场景
