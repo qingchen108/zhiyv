@@ -3,8 +3,10 @@ package com.smartmed.backend.registration.dto;
 import lombok.Builder;
 import lombok.Data;
 
+import java.time.LocalDate;
+
 /**
- * 草稿创建响应（05 ticket）。
+ * 草稿创建响应（05 ticket，ticket 12 增强）。
  */
 @Data
 @Builder
@@ -20,4 +22,15 @@ public class RegistrationDraftResponse {
     private String doctorName;
     /** 科室名称 */
     private String departmentName;
+
+    // === ticket 12 增强：卡片展示字段 ===
+
+    /** 排班日期 */
+    private LocalDate scheduleDate;
+    /** 班次（MORNING/AFTERNOON/EVENING） */
+    private String timePeriod;
+    /** 时段范围（如 "08:00-12:00"） */
+    private String timeRange;
+    /** 就诊人姓名（"本人" 或家人姓名） */
+    private String visitorName;
 }
