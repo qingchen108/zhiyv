@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 排班服务（04 ticket，ADR-0009）。
@@ -331,5 +332,43 @@ public class ScheduleService {
                 .remainingSlots(s.getRemainingSlots())
                 .status(s.getStatus())
                 .build();
+    }
+
+    /**
+     * Agent 排班查询（ticket 12）。
+     * <p>
+     * 返回扁平列表，过滤 SUSPENDED 和余量=0，按日期升序。
+     * 支持按 doctorId / departmentId / date 筛选（均为可选）。
+     */
+    public List<Map<String, Object>> queryForAgent(Long doctorId, Long departmentId, LocalDate date) {
+        LambdaQueryWrapper<Schedule> qw = new LambdaQueryWrapper<Schedule>()
+                .eq(doctorId != null, Schedule::getDoctorId, doctorId)
+                .eq(departmentId != null, Schedule::getDepartmentId, departmentId)
+                .eq(date != null, Schedule::getScheduleDate, date)
+                .ne(Schedule::getStatus, "SUSPENDED")
+                .gt(Schedule::getRemainingSlots, 0)
+                .orderByAsc(Schedule::getScheduleDate)
+                .orderByAsc(Schedule::getStartTime);
+
+        List<Schedule> schedules = scheduleMapper.selectList(qw);
+        return schedules.stream().map(s -> {
+            Doctor doc = doctorMapper.selectById(s.getDoctorId());
+            Department dept = departmentMapper.selectById(s.getDepartmentId());
+            TimePeriod tp = TimePeriod.valueOf(s.getTimePeriod());
+            String timeRange = tp.getStartTime() + "-" + tp.getEndTime();
+
+            Map<String, Object> map = new java.util.LinkedHashMap<>();
+            map.put("scheduleId", s.getId());
+            map.put("doctorId", s.getDoctorId());
+            map.put("doctorName", doc != null ? doc.getName() : "");
+            map.put("departmentId", s.getDepartmentId());
+            map.put("departmentName", dept != null ? dept.getName() : "");
+            map.put("scheduleDate", s.getScheduleDate().toString());
+            map.put("timePeriod", s.getTimePeriod());
+            map.put("timeRange", timeRange);
+            map.put("remainingSlots", s.getRemainingSlots());
+            map.put("status", s.getStatus());
+            return map;
+        }).collect(java.util.stream.Collectors.toList());
     }
 }

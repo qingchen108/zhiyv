@@ -4,6 +4,7 @@ import com.smartmed.backend.common.BusinessException;
 import com.smartmed.backend.department.service.DepartmentService;
 import com.smartmed.backend.doctor.service.DoctorService;
 import com.smartmed.backend.knowledge.KnowledgeGraphService;
+import com.smartmed.backend.schedule.service.ScheduleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -41,6 +42,7 @@ public class AgentToolDispatcher {
     private final KnowledgeGraphService knowledgeGraphService;
     private final DepartmentService departmentService;
     private final DoctorService doctorService;
+    private final ScheduleService scheduleService;
 
     /**
      * 分发工具调用。
@@ -59,6 +61,9 @@ public class AgentToolDispatcher {
             case "query_knowledge_graph" -> dispatchQueryKnowledgeGraph(arguments);
             case "query_doctors" -> dispatchQueryDoctors(arguments);
             case "query_departments" -> dispatchQueryDepartments(arguments);
+
+            // === 12 ticket 挂号相关工具 ===
+            case "query_schedule" -> dispatchQuerySchedule(arguments);
 
             // === 暂未实现的工具（12-15 ticket） ===
             default -> throw new BusinessException(501, "工具未实现: " + toolName);
@@ -88,6 +93,15 @@ public class AgentToolDispatcher {
         String name = extractString(args, "name");
         // 返回分页第一页，size 放大到 100 涵盖全部科室
         return Map.of("departments", departmentService.page(1, 100, name));
+    }
+
+    /** 排班查询：按医生/科室/日期筛选，返回扁平列表，过滤 SUSPENDED 和余量=0。 */
+    private Object dispatchQuerySchedule(Map<String, Object> args) {
+        Long doctorId = extractLong(args, "doctor_id");
+        Long departmentId = extractLong(args, "department_id");
+        String dateStr = extractString(args, "date");
+        java.time.LocalDate date = dateStr != null ? java.time.LocalDate.parse(dateStr) : null;
+        return Map.of("schedules", scheduleService.queryForAgent(doctorId, departmentId, date));
     }
 
     // ============ 参数提取辅助 ============
