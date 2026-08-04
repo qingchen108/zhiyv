@@ -160,16 +160,17 @@ class AgentGatewayIntegrationTest {
                 .andExpect(jsonPath("$.code").value(400));
     }
 
-    // 7c. 正确 secret + create_registration_draft 含 X-Patient-Id → 200（调度无效，但不会 501）
+    // 7c. 正确 secret + create_registration_draft 含 X-Patient-Id
+    // 路由正常（非 501），但因 test DB 无 schedule_id=1 → 404（业务错误）
     @Test
-    void agentTool_createRegistrationDraft_withPatientId_returns200() throws Exception {
+    void agentTool_createRegistrationDraft_withPatientId_returns404() throws Exception {
         mockMvc.perform(post("/api/agent/tools/create_registration_draft")
                         .header("X-Agent-Secret", "smartmed-dev-agent-secret-change-me")
                         .header("X-Patient-Id", "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"arguments\":{\"schedule_id\":1}}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200));
+                .andExpect(jsonPath("$.code").value(404));
     }
 
     // 8. 正确 secret + 已实现工具 → 200
