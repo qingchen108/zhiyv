@@ -1,7 +1,7 @@
 # 智愈（SmartMed）— 技术决策上下文
 
 > 本文件记录所有已确认的技术决策，作为团队开发的单一参考来源。
-> 最后更新：2026-08-03
+> 最后更新：2026-08-03（§12 集成测试策略新增）
 
 ---
 
@@ -207,7 +207,20 @@
 | frequency 解析 | "1 次"→08:00 / "2 次"→08:00,18:00 / "3 次"→08:00,12:00,18:00 / 无法匹配→次日 08:00 + frequency 原文保留 |
 | 凭证卡片渲染 | 挂号凭证和购药凭证均由前端本地渲染（confirm API 返回 VO），不进 SSE 事件流，Agent 不参与 |
 | confirm 失败恢复 | 不自动回调 Agent，草稿已被 DEL 卡片失效，前端弹 toast，用户自然语言发起新一轮对话 |
-| 就诊提醒 | 不实现调度（Out of Scope），Agent 仅文案提示"就诊前 1 天会提醒您" |
+| 就诊提醒 | 不实现调度（Out of Scope），Agent 仅文案提示“就诊前 1 天会提醒您” |
+
+---
+
+## 12. 集成测试策略
+
+| 决策项 | 结论 |
+|--------|------|
+| 测试基类 | `IntegrationTestBase` 薄基类：`adminToken()`、`loginAs(phone, password)`、`today()`，所有集成测试继承 |
+| 排班夹具 | `ScheduleFixture`（`@Component`）：JdbcTemplate INSERT schedule + StringRedisTemplate SET `schedule:{id}:remaining_slots`，替代 `POST /api/b/schedules` API 调用 |
+| 时间窗口 | 测试夹具固定 `date=today` + `period=MORNING`，消除 21:00 后 EVENING 结束导致的时间敏感失败，见 ADR-0018 |
+| Redis 处理 | 夹具手动 SET key，teardown 手动 DEL，与 `@Transactional` 回滚互补 |
+| 生产代码 | 不动（`Clock` 注入留给后续重构） |
+| 适用范围 | 08b 首先落地（RecordsIntegrationTest + DoctorWorkspaceIntegrationTest），后续测试统一采用此模式 |
 
 ---
 
@@ -256,4 +269,6 @@
 | 病历（Medical Record） | 以实际就诊人为中心聚合的历史挂号+问诊+处方+过敏史，不按医生隔离，跨医生可见 |
 | 购药订单（Drug Order） | 患者确认购药后创建的订单记录，关联 prescription_id + pharmacy_id，含总价和配送信息 |
 | 用药提醒（Medication Reminder） | 购药确认后自动生成的服药提醒计划，按处方 frequency 关键词匹配生成提醒时间点，status 两态 ACTIVE/DONE |
+| 集成测试基类（IntegrationTestBase） | 所有集成测试的薄基类，提供 `adminToken()` / `loginAs()` / `today()` 等公共 helper，消除跨文件重复，见 ADR-0018 |
+| 排班夹具（ScheduleFixture） | 测试用 `@Component`，通过 JdbcTemplate INSERT + Redis SET 直接造排班数据，绕过 API 层，消除时间窗口敏感，见 ADR-0018 |
 | 药店库存扣减 | 购药 confirm 同事务 SQL 扣减 drug_pharmacy_stock.stock，stock 不足返回 400，不做 Redis 并发控制 |

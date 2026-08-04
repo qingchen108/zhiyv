@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Architecture review — SmartMed Backend</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({ startOnLoad: true, theme: "neutral", securityLevel: "loose" });
+    </script>
+    <style>
+      .seam { stroke-dasharray: 4 4; }
+      .leak { stroke: #dc2626; }
+      .deep { background: linear-gradient(135deg, #0f172a, #1e293b); }
+      .card-shadow { box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1); }
+    </style>
+  </head>
+  <body class="bg-stone-50 text-slate-900 font-sans">
+    <main class="max-w-5xl mx-auto px-6 py-12 space-y-12">
+
+      <!-- Header -->
+      <header>
+        <h1 class="text-3xl font-serif font-bold text-slate-800">Architecture Review — SmartMed Backend</h1>
+        <p class="text-sm text-slate-500 mt-1">2026-08-03 · backend/</p>
+        <div class="flex gap-6 mt-4 text-xs text-slate-500">
+          <span class="flex items-center gap-1"><span class="inline-block w-4 h-4 border-2 border-slate-400 rounded"></span> Module</span>
+          <span class="flex items-center gap-1"><span class="inline-block w-4 h-0.5 border-t-2 border-dashed border-slate-400"></span> Seam</span>
+          <span class="flex items-center gap-1"><span class="inline-block w-4 h-0.5 bg-red-500"></span> Leakage</span>
+          <span class="flex items-center gap-1"><span class="inline-block w-4 h-4 deep rounded"></span> Deep module</span>
+        </div>
+      </header>
+
+      <!-- Candidates -->
+      <section id="candidates" class="space-y-10">
+
+        <!-- ═══════════════ Candidate 1 ═══════════════ -->
+        <article class="bg-white rounded-xl card-shadow p-6 border border-slate-100">
+          <div class="flex items-start justify-between mb-4">
+            <h2 class="text-xl font-serif font-bold">1. Extract VisitorResolver — collapse visitor parsing duplication</h2>
+            <span class="shrink-0 ml-4 px-2 py-0.5 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800">Strong</span>
+          </div>
+
+          <p class="font-mono text-sm text-slate-500 mb-4">
+            RegistrationService.java · ConsultationService.java · RecordsService.java · PrescriptionService.java
+          </p>
+
+          <!-- Before / After -->
+          <div class="grid grid-cols-2 gap-4 mb-5">
+            <div>
+              <p class="text-xs uppercase tracking-wider text-slate-400 mb-2 font-semibold">Before — parsing leaks across 5 sites in 4 modules</p>
+              <pre class="mermaid">
+flowchart TD
+    RS["RegistrationService\n.toVO()"]
+    CS1["ConsultationService\n.toVO()"]
+    CS2["ConsultationService\n.medicalRecord()"]
+    RCS["RecordsService\n.allergyHistory()"]
+    PS["PrescriptionService\n.resolveAllergy()"]
+
+    FM[("PatientFamilyMember")]
+    P[("Patient")]
+
+    RS -->|copy| FM
+    RS -->|copy| P
+    CS1 -->|copy| FM
+    CS1 -->|copy| P
+    CS2 -->|copy| FM
+    CS2 -->|copy| P
+    RCS -->|copy| FM
+    RCS -->|copy| P
+    PS -->|copy| FM
+    PS -->|copy| P
+
+    classDef leak stroke:#dc2626,stroke-width:2px;
+    class RS,CS1,CS2,RCS,PS leak;
+              </pre>
+            </div>
+            <div>
+              <p class="text-xs uppercase tracking-wider text-slate-400 mb-2 font-semibold">After — one deep module behind a clean seam</p>
+              <pre class="mermaid">
+flowchart TD
+    RS["RegistrationService"]
+    CS["ConsultationService"]
+    RCS["RecordsService"]
+    PS["PrescriptionService"]
+
+    VR["VisitorResolver\n.resolveVisitor(id)\n.resolveAllergyHistory(id)"]
+
+    FM[("PatientFamilyMember")]
+    P[("Patient")]
+
+    RS --> VR
+    CS --> VR
+    RCS --> VR
+    PS --> VR
+    VR --> FM
+    VR --> P
+
+    classDef deep fill:#0f172a,stroke:#0f172a,color:#fff;
+    class VR deep;
+              </pre>
+            </div>
+          </div>
+
+          <p class="text-sm text-slate-700 mb-2"><strong>Problem:</strong> The same <code>familyMemberId != null → PatientFamilyMember, else → Patient</code> conditional is copy-pasted across 5 locations in 4 Service files.</p>
+          <p class="text-sm text-slate-700 mb-3"><strong>Solution:</strong> Extract a <code>VisitorResolver</code> module with two methods: <code>resolveVisitor(familyMemberId)</code> and <code>resolveAllergyHistory(familyMemberId)</code>. All 4 Services inject it.</p>
+
+          <ul class="text-sm text-slate-600 space-y-1 list-disc list-inside">
+            <li>Locality: allergy-history bug fixed once, not 5 times</li>
+            <li>Interface shrinks: 2 methods replace ~40 lines of duplication</li>
+            <li>Tests hit one module instead of 4</li>
+          </ul>
+        </article>
+
+        <!-- ═══════════════ Candidate 2 ═══════════════ -->
+        <article class="bg-white rounded-xl card-shadow p-6 border border-slate-100">
+          <div class="flex items-start justify-between mb-4">
+            <h2 class="text-xl font-serif font-bold">2. Extract IntegrationTestBase + shared fixtures</h2>
+            <span class="shrink-0 ml-4 px-2 py-0.5 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800">Strong</span>
+          </div>
+
+          <p class="font-mono text-sm text-slate-500 mb-4">
+            10 test files in <code>src/test/java/com/smartmed/backend/</code>
+          </p>
+
+          <!-- Mass diagram: duplication weight -->
+          <div class="grid grid-cols-2 gap-4 mb-5">
+            <div>
+              <p class="text-xs uppercase tracking-wider text-slate-400 mb-2 font-semibold">Before — 41 helper methods duplicated across 10 files</p>
+              <div class="space-y-1 text-xs font-mono">
+                <div class="flex items-center"><span class="w-56 truncate bg-red-100 text-red-700 px-2 py-1 rounded">DoctorWorkspaceTest</span><span class="ml-1 text-slate-400">10 helpers</span></div>
+                <div class="flex items-center"><span class="w-56 truncate bg-red-100 text-red-700 px-2 py-1 rounded">RecordsTest</span><span class="ml-1 text-slate-400">12 helpers</span></div>
+                <div class="flex items-center"><span class="w-56 truncate bg-orange-100 text-orange-700 px-2 py-1 rounded">RegistrationTest</span><span class="ml-1 text-slate-400">5 helpers</span></div>
+                <div class="flex items-center"><span class="w-56 truncate bg-orange-100 text-orange-700 px-2 py-1 rounded">ScheduleTest</span><span class="ml-1 text-slate-400">5 helpers</span></div>
+                <div class="flex items-center"><span class="w-56 truncate bg-orange-100 text-orange-700 px-2 py-1 rounded">DeptDoctorDrugTest</span><span class="ml-1 text-slate-400">3 helpers</span></div>
+                <div class="flex items-center"><span class="w-56 truncate bg-amber-50 text-amber-700 px-2 py-1 rounded">PatientTest</span><span class="ml-1 text-slate-400">2 helpers</span></div>
+                <div class="flex items-center"><span class="w-56 truncate bg-amber-50 text-amber-700 px-2 py-1 rounded">ChatSessionTest</span><span class="ml-1 text-slate-400">3 helpers</span></div>
+                <div class="flex items-center"><span class="w-56 truncate bg-amber-50 text-amber-700 px-2 py-1 rounded">ChatWSTest</span><span class="ml-1 text-slate-400">1 helper</span></div>
+              </div>
+              <p class="text-xs text-slate-400 mt-2">login() ×4 · adminToken() ×4 · cToken() ×4 · doctorToken() ×3 · createTodaySchedule() ×2</p>
+            </div>
+            <div>
+              <p class="text-xs uppercase tracking-wider text-slate-400 mb-2 font-semibold">After — thin base + composable fixtures</p>
+              <div class="space-y-2">
+                <div class="deep text-white text-xs px-3 py-2 rounded font-mono">
+                  IntegrationTestBase<br/>
+                  <span class="text-slate-300">login() · adminToken() · doctorToken() · cToken() · today()</span>
+                </div>
+                <div class="bg-slate-700 text-white text-xs px-3 py-2 rounded font-mono">
+                  ScheduleFixture<br/>
+                  <span class="text-slate-300">createSchedule(doctorId, date, period, slots)</span>
+                </div>
+                <div class="bg-slate-700 text-white text-xs px-3 py-2 rounded font-mono">
+                  RegistrationFixture<br/>
+                  <span class="text-slate-300">createDraftAndGetToken() · confirm()</span>
+                </div>
+                <div class="bg-slate-600 text-white text-xs px-3 py-2 rounded font-mono">
+                  ConsultationFixture<br/>
+                  <span class="text-slate-300">startConsultation() · createPrescription()</span>
+                </div>
+                <p class="text-xs text-slate-400">10 test files extend base, compose fixtures</p>
+              </div>
+            </div>
+          </div>
+
+          <p class="text-sm text-slate-700 mb-2"><strong>Problem:</strong> 41 private helper methods scattered across 10 test files; <code>login()</code> alone is duplicated 4 times.</p>
+          <p class="text-sm text-slate-700 mb-3"><strong>Solution:</strong> Thin <code>IntegrationTestBase</code> for auth, composable fixture classes for data setup. ADR-0018 mandates this for 08b; extend project-wide.</p>
+
+          <ul class="text-sm text-slate-600 space-y-1 list-disc list-inside">
+            <li>Locality: fixture bug fixed once, propagates everywhere</li>
+            <li>Leverage: one auth helper, N test files</li>
+            <li>New tests start with fixtures, not copy-paste</li>
+          </ul>
+
+          <div class="mt-3 bg-amber-50 border border-amber-200 rounded px-3 py-2 text-xs text-amber-800">
+            ADR-0018 already mandates IntegrationTestBase + ScheduleFixture for 08b. This candidate extends the pattern project-wide.
+          </div>
+        </article>
+
+        <!-- ═══════════════ Candidate 3 ═══════════════ -->
+        <article class="bg-white rounded-xl card-shadow p-6 border border-slate-100">
+          <div class="flex items-start justify-between mb-4">
+            <h2 class="text-xl font-serif font-bold">3. LambdaQueryWrapper → Mapper queries — concentrate data access</h2>
+            <span class="shrink-0 ml-4 px-2 py-0.5 text-xs font-semibold rounded-full bg-amber-100 text-amber-800">Worth exploring</span>
+          </div>
+
+          <p class="font-mono text-sm text-slate-500 mb-4">
+            10 Service files · 32 LambdaQueryWrapper usages
+          </p>
+
+          <!-- Cross-section: layers -->
+          <div class="grid grid-cols-2 gap-4 mb-5">
+            <div>
+              <p class="text-xs uppercase tracking-wider text-slate-400 mb-2 font-semibold">Before — query logic leaks into Service</p>
+              <div class="space-y-0">
+                <div class="h-10 border-l-4 border-slate-300 bg-slate-50 flex items-center px-3 text-xs font-mono">Controller — route only ✓</div>
+                <div class="h-16 border-l-4 border-red-400 bg-red-50 flex items-center px-3 text-xs font-mono">Service — business logic +<br/>32× LambdaQueryWrapper<br/>(conditions, ordering, joins)</div>
+                <div class="h-8 border-l-4 border-slate-300 bg-slate-50 flex items-center px-3 text-xs font-mono">Mapper — selectById / insert only</div>
+                <div class="h-6 border-l-4 border-slate-200 bg-white flex items-center px-3 text-xs font-mono">Database</div>
+              </div>
+            </div>
+            <div>
+              <p class="text-xs uppercase tracking-wider text-slate-400 mb-2 font-semibold">After — queries named & concentrated in Mapper</p>
+              <div class="space-y-0">
+                <div class="h-10 border-l-4 border-slate-300 bg-slate-50 flex items-center px-3 text-xs font-mono">Controller — route only</div>
+                <div class="h-10 border-l-4 border-emerald-400 bg-emerald-50 flex items-center px-3 text-xs font-mono">Service — business logic only</div>
+                <div class="h-16 border-l-4 border-emerald-400 bg-emerald-50 flex items-center px-3 text-xs font-mono">Mapper — named queries<br/>(findByPatientAndStatus,<br/>findTodayWaiting, etc.)</div>
+                <div class="h-6 border-l-4 border-slate-200 bg-white flex items-center px-3 text-xs font-mono">Database</div>
+              </div>
+            </div>
+          </div>
+
+          <p class="text-sm text-slate-700 mb-2"><strong>Problem:</strong> 32 ad-hoc <code>LambdaQueryWrapper</code> chains inline in Services — query logic has no name, no interface, no locality.</p>
+          <p class="text-sm text-slate-700 mb-3"><strong>Solution:</strong> Promote recurring patterns to named Mapper methods. Service calls <code>mapper.findByPatientAndStatus()</code> instead of building a wrapper.</p>
+
+          <ul class="text-sm text-slate-600 space-y-1 list-disc list-inside">
+            <li>Locality: query change touches Mapper, not Service</li>
+            <li>Interface: named queries document intent</li>
+            <li>Each query migration is independent — incremental</li>
+          </ul>
+        </article>
+
+        <!-- ═══════════════ Candidate 4 ═══════════════ -->
+        <article class="bg-white rounded-xl card-shadow p-6 border border-slate-100">
+          <div class="flex items-start justify-between mb-4">
+            <h2 class="text-xl font-serif font-bold">4. Unify Redis adapter per bounded context</h2>
+            <span class="shrink-0 ml-4 px-2 py-0.5 text-xs font-semibold rounded-full bg-amber-100 text-amber-800">Worth exploring</span>
+          </div>
+
+          <p class="font-mono text-sm text-slate-500 mb-4">
+            RegistrationRedisService · ScheduleRedisService · RefreshTokenService · RegistrationRedisService
+          </p>
+
+          <div class="grid grid-cols-2 gap-4 mb-5">
+            <div>
+              <p class="text-xs uppercase tracking-wider text-slate-400 mb-2 font-semibold">Before — RegistrationService leaks into ScheduleRedis</p>
+              <pre class="mermaid">
+flowchart TD
+    RegSvc["RegistrationService"]
+    SchSvc["ScheduleService"]
+
+    RegRedis["RegistrationRedisService"]
+    SchRedis["ScheduleRedisService"]
+    RT[("StringRedisTemplate")]
+
+    RegSvc --> RegRedis
+    RegSvc -->|leak| SchRedis
+    SchSvc --> SchRedis
+    RegRedis --> RT
+    SchRedis --> RT
+
+    classDef leak stroke:#dc2626,stroke-width:2px;
+    class RegSvc leak;
+              </pre>
+            </div>
+            <div>
+              <p class="text-xs uppercase tracking-wider text-slate-400 mb-2 font-semibold">After — Schedule owns its cache sync</p>
+              <pre class="mermaid">
+flowchart TD
+    RegSvc["RegistrationService"]
+    SchSvc["ScheduleService"]
+
+    RegRedis["RegistrationRedisAdapter"]
+    SchRedis["ScheduleRedisAdapter"]
+    RT[("StringRedisTemplate")]
+
+    RegSvc --> RegRedis
+    SchSvc --> SchRedis
+    RegRedis --> RT
+    SchRedis --> RT
+
+    classDef deep fill:#0f172a,stroke:#0f172a,color:#fff;
+    class RegRedis,SchRedis deep;
+              </pre>
+            </div>
+          </div>
+
+          <p class="text-sm text-slate-700 mb-2"><strong>Problem:</strong> <code>RegistrationService</code> directly calls <code>ScheduleRedisService.syncSlots()</code> — leaking schedule-cache concerns across the registration seam.</p>
+          <p class="text-sm text-slate-700 mb-3"><strong>Solution:</strong> ScheduleService triggers its own cache sync internally after schedule mutations. RegistrationService only knows about its own Redis adapter.</p>
+
+          <ul class="text-sm text-slate-600 space-y-1 list-disc list-inside">
+            <li>Seam: RegistrationService no longer knows schedule cache</li>
+            <li>Locality: Redis key format change → one adapter</li>
+            <li>Tests: mock one adapter, not two</li>
+          </ul>
+        </article>
+
+        <!-- ═══════════════ Candidate 5 ═══════════════ -->
+        <article class="bg-white rounded-xl card-shadow p-6 border border-slate-100">
+          <div class="flex items-start justify-between mb-4">
+            <h2 class="text-xl font-serif font-bold">5. Extract MedicalRecord aggregation into its own module</h2>
+            <span class="shrink-0 ml-4 px-2 py-0.5 text-xs font-semibold rounded-full bg-slate-200 text-slate-600">Speculative</span>
+          </div>
+
+          <p class="font-mono text-sm text-slate-500 mb-4">
+            ConsultationService.medicalRecord() — 73 lines · RecordsService — parallel aggregation
+          </p>
+
+          <div class="grid grid-cols-2 gap-4 mb-5">
+            <div>
+              <p class="text-xs uppercase tracking-wider text-slate-400 mb-2 font-semibold">Before — 73-line aggregation crosses 5 seams</p>
+              <pre class="mermaid">
+flowchart LR
+    CS["ConsultationService\n.medicalRecord()"]
+    RegM["RegistrationMapper"]
+    ConM["ConsultationMapper"]
+    PreM["PrescriptionMapper"]
+    FMM["FamilyMemberMapper"]
+    PatM["PatientMapper"]
+
+    CS --> RegM
+    CS --> ConM
+    CS --> PreM
+    CS --> FMM
+    CS --> PatM
+              </pre>
+            </div>
+            <div>
+              <p class="text-xs uppercase tracking-wider text-slate-400 mb-2 font-semibold">After — one deep module owns the read-model</p>
+              <div class="deep text-white rounded-lg p-4">
+                <p class="text-xs uppercase tracking-wider text-slate-300 mb-2 font-semibold">MedicalRecordModule</p>
+                <p class="text-sm font-semibold">interface:</p>
+                <p class="font-mono text-xs text-slate-300">getRecord(visitorId): MedicalRecordVO</p>
+                <p class="text-sm mt-3 font-semibold">internals (private):</p>
+                <p class="font-mono text-xs text-slate-400">aggregateRegistrations()</p>
+                <p class="font-mono text-xs text-slate-400">aggregateConsultations()</p>
+                <p class="font-mono text-xs text-slate-400">aggregatePrescriptions()</p>
+                <p class="font-mono text-xs text-slate-400">resolveAllergyHistory()</p>
+              </div>
+            </div>
+          </div>
+
+          <p class="text-sm text-slate-700 mb-2"><strong>Problem:</strong> <code>ConsultationService.medicalRecord()</code> is a 73-line read-model reaching into 5 Mappers. <code>RecordsService</code> builds nearly the same view independently.</p>
+          <p class="text-sm text-slate-700 mb-3"><strong>Solution:</strong> Extract a <code>MedicalRecordService</code> that owns "以实际就诊人为中心的病历聚合". Both callers delegate to it.</p>
+
+          <ul class="text-sm text-slate-600 space-y-1 list-disc list-inside">
+            <li>Depth: one interface, five Mapper calls hidden inside</li>
+            <li>Locality: aggregation logic change in one module</li>
+            <li>Leverage: Agent get_medical_record tool reuses this</li>
+          </ul>
+        </article>
+
+      </section>
+
+      <!-- Top Recommendation -->
+      <section id="top-recommendation" class="bg-slate-900 text-white rounded-xl p-8">
+        <h2 class="text-2xl font-serif font-bold mb-3">Top Recommendation</h2>
+        <p class="text-lg text-slate-200 mb-4">
+          <a href="#candidates" class="text-emerald-400 hover:underline"><strong>#1 — Extract VisitorResolver</strong></a> — highest leverage, smallest blast radius.
+        </p>
+        <p class="text-sm text-slate-400">
+          The visitor/familyMember parsing is duplicated in 5 locations across 4 files. Extracting it into one module is a surgical change: small diff, zero schema impact, immediate locality gain. Naturally pairs with #2 (test fixtures) since VisitorResolver is trivially unit-testable through its seam.
+        </p>
+        <p class="text-sm text-slate-400 mt-2">
+          Second: <strong>#2 — IntegrationTestBase</strong> (ADR-0018 already mandates this for 08b, extend project-wide). Third: <strong>#3 — Mapper queries</strong> (larger refactor, but each query is independent).
+        </p>
+      </section>
+
+    </main>
+  </body>
+</html>

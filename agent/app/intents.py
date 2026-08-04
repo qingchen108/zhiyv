@@ -92,15 +92,25 @@ def build_router(llm: BaseChatModel) -> Callable[[list[dict[str, str]]], Awaitab
     return route
 
 
-def build_intent_node(intent: str) -> Callable[[dict[str, Any]], dict[str, Any]]:
-    """构建意图节点：返回 mock 回复（09 骨架）。
+def build_intent_node(intent: str, llm: BaseChatModel | None = None) -> Callable[[dict[str, Any]], dict[str, Any]]:
+    """构建意图节点。
 
     11-15 在此节点内接入真实编排：调用工具（LangChain tools，契约 tools.json 单一来源）、
     产出 tool_call / card 事件。节点返回值结构保持 {"reply": str}，主流程按 SSE 协议逐块输出。
+
+    Args:
+        intent: 意图名
+        llm: LLM 实例（triage 等需要 LLM 的节点使用；未传入时由 get_graph 的 build_router_from_llm 装配）
     """
+
+    # triage 意图使用真实编排（ticket 11），需 LLM；echo 模式或无 LLM 时降级为 mock 回复
+    if intent == "triage" and llm is not None:
+        from app.triage import build_triage_node
+
+        return build_triage_node(llm)
 
     def node(state: dict[str, Any]) -> dict[str, Any]:
         # TODO(11-15): 意图 {intent} 的真实编排：工具调用链 + card 事件，见 agent/tools/tools.json
-        return {"reply": MOCK_REPLIES[intent]}
+        return {"reply": MOCK_REPLIES[intent], "tool_calls": state.get("tool_calls") or []}
 
     return node

@@ -77,5 +77,6 @@ async def test_router_llm_failure_falls_back_to_general():
 def test_intent_node_returns_mock_reply():
     node = build_intent_node("pharmacy")
     assert node({"messages": MESSAGES, "intent": "pharmacy", "reply": ""}) == {
-        "reply": MOCK_REPLIES["pharmacy"]
+        "reply": MOCK_REPLIES["pharmacy"],
+        "tool_calls": [],
     }

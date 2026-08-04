@@ -10,9 +10,11 @@ import com.smartmed.backend.department.entity.Department;
 import com.smartmed.backend.department.mapper.DepartmentMapper;
 import com.smartmed.backend.doctor.dto.DoctorProfileUpdateRequest;
 import com.smartmed.backend.doctor.dto.DoctorRequest;
+import com.smartmed.backend.doctor.dto.DoctorTriageVO;
 import com.smartmed.backend.doctor.dto.DoctorVO;
 import com.smartmed.backend.doctor.entity.Doctor;
 import com.smartmed.backend.doctor.mapper.DoctorMapper;
+import com.smartmed.backend.schedule.entity.Schedule;
 import com.smartmed.backend.schedule.mapper.ScheduleMapper;
 import com.smartmed.backend.security.SecurityUtil;
 import lombok.RequiredArgsConstructor;
@@ -20,11 +22,18 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.smartmed.backend.schedule.entity.Schedule;
+
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.Period;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 医生服务。
@@ -77,6 +86,85 @@ public class DoctorService {
             throw new BusinessException(403, "当前账号未关联医生");
         }
         return getById(doctorId);
+    }
+
+    /**
+     * 导诊场景按科室查询医生推荐（ticket 11）。
+     * <p>
+     * 返回医生基本信息 + 可约号源列表，按好评率降序 + 余量降序排列。
+     * 最多返回 3 位医生。
+     */
+    public List<DoctorTriageVO> queryForTriage(Long departmentId) {
+        // 查该科室所有医生
+        List<Doctor> doctors = doctorMapper.selectList(
+                new LambdaQueryWrapper<Doctor>()
+                        .eq(Doctor::getDepartmentId, departmentId)
+                        .orderByDesc(Doctor::getGoodRate));
+        if (doctors.isEmpty()) {
+            return List.of();
+        }
+
+        String deptName = loadDeptName(departmentId);
+        Map<Long, String> phoneByDoctorId = loadPhones(doctors);
+
+        // 查每个医生的可约号源（today ~ today+14，PUBLISHED，remaining>0）
+        LocalDate today = LocalDate.now();
+        LocalDate maxDate = today.plusDays(14);
+        List<Long> doctorIds = doctors.stream().map(Doctor::getId).toList();
+        List<Schedule> schedules = scheduleMapper.selectList(
+                new LambdaQueryWrapper<Schedule>()
+                        .in(Schedule::getDoctorId, doctorIds)
+                        .ge(Schedule::getScheduleDate, today)
+                        .le(Schedule::getScheduleDate, maxDate)
+                        .eq(Schedule::getStatus, "PUBLISHED")
+                        .gt(Schedule::getRemainingSlots, 0)
+                        .orderByAsc(Schedule::getScheduleDate)
+                        .orderByAsc(Schedule::getStartTime));
+
+        // 按 doctor_id 分组
+        Map<Long, List<DoctorTriageVO.AvailableSlot>> slotsByDoctor = schedules.stream()
+                .collect(Collectors.groupingBy(
+                        Schedule::getDoctorId,
+                        Collectors.mapping(this::toAvailableSlot, Collectors.toList())));
+
+        // 构建结果，按余量+好评率排序
+        List<DoctorTriageVO> result = new ArrayList<>();
+        for (Doctor d : doctors) {
+            List<DoctorTriageVO.AvailableSlot> slots = slotsByDoctor.getOrDefault(d.getId(), List.of());
+            int totalRemaining = slots.stream().mapToInt(DoctorTriageVO.AvailableSlot::getRemainingSlots).sum();
+            result.add(DoctorTriageVO.builder()
+                    .id(d.getId())
+                    .departmentId(d.getDepartmentId())
+                    .departmentName(deptName)
+                    .name(d.getName())
+                    .title(d.getTitle())
+                    .specialty(d.getSpecialty())
+                    .avatarUrl(d.getAvatarUrl())
+                    .intro(d.getIntro())
+                    .goodRate(d.getGoodRate())
+                    .availableSlots(slots)
+                    .build());
+        }
+
+        // 排序：有号 > 无号，好评率降序，余量降序
+        result.sort(Comparator
+                .<DoctorTriageVO>comparingInt(d -> d.getAvailableSlots().isEmpty() ? 1 : 0)
+                .thenComparing(d -> d.getGoodRate() != null ? d.getGoodRate().negate() : BigDecimal.ZERO)
+                .thenComparingInt(d -> -d.getAvailableSlots().stream()
+                        .mapToInt(DoctorTriageVO.AvailableSlot::getRemainingSlots).sum()));
+
+        return result.stream().limit(3).toList();
+    }
+
+    private DoctorTriageVO.AvailableSlot toAvailableSlot(Schedule s) {
+        return DoctorTriageVO.AvailableSlot.builder()
+                .scheduleId(s.getId())
+                .date(s.getScheduleDate().toString())
+                .timePeriod(s.getTimePeriod())
+                .startTime(s.getStartTime().toString())
+                .endTime(s.getEndTime().toString())
+                .remainingSlots(s.getRemainingSlots())
+                .build();
     }
 
     /**

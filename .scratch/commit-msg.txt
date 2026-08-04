@@ -1,0 +1,18 @@
+fix: 前后端联调可运行性修复（配置注入+登录链路+菜单显示）
+
+后端：
+- application.yml 增加 spring.config.import 读取 backend/.env（optional:file:.env[.properties]），
+  无需手动 source .env 即可启动；找不到时静默回退默认值，兼容 CI/容器
+- V01_2 种子数据两个演示账号 must_change_password 改为 FALSE（首登免改密）
+- 新增 V06_1 迁移把库内现存演示账号同步置 false（Flyway 机制，重启自动执行）
+
+前端：
+- .umirc.ts 启用 access/initialState/model 插件（修复 register failed: invalid key）；
+  去掉多余 @/layouts/index 包裹层（其导致 filterRoutes 丢 children、侧边栏菜单空白），
+  页面路由平铺由 layout 插件自动包裹
+- 新建 src/access.ts（access 插件读 @/access 默认导出），app.ts 删除原 access 命名导出
+- app.ts onPageChange 增加未登录拦截（非 /login 路由未登录跳登录，避免 403）；
+  删除 route:undefined（覆盖 ProLayout route 致菜单空）与 rightContentRender:undefined（致退出登录入口消失）
+- 登录页：显式校验响应 code（密码错误弹友好提示而非读到 undefined 报错）；
+  登录后改 window.location.href 整页加载（绕过 SPA 闭包竞争），按角色跳首页
+- 改密页：改密成功后不再清 token 跳登录，同步本地 mustChangePassword=false 后按角色直进系统

@@ -1,8 +1,9 @@
 # 08 记录/工作台集成测试存在晚间时间窗口缺陷
 
-**Status**: ready-for-agent
+**Status**: needs-info
 **Labels**: test, time-window
 **Blocking**: 无
+**ADR**: docs/adr/0018-integration-test-time-window-fix.md
 
 ## 描述
 
@@ -12,11 +13,16 @@
 
 首次复现：2026-08-03 21:17 运行全量 `mvn test`（20:58 窗口内运行时全绿）。
 
-## 修复方向（待定，供实施者选择）
+## 修复方向（已确认 — 方案 B）
 
-- 方案 A：`todayPeriod()` 在 EVENING 结束（21:00）后回退用明天的日期 + MORNING 班次，并同步调整依赖"今日待接诊"的断言
-- 方案 B：测试夹具直接 SQL 造排班（不依赖班次时间），彻底消除时间敏感
-- 注意：测试为 `@Transactional` 回滚 + Redis key 手动清理，改动时保持这两点
+**测试夹具 SQL 造排班**，彻底消除时间敏感：
+
+- `ScheduleFixture`（JdbcTemplate INSERT + StringRedisTemplate SET `schedule:{id}:remaining_slots`）替代 `createTodaySchedule()`
+- `IntegrationTestBase` 薄基类提供 `adminToken()` / `loginAs()` / `today()`，消除两个测试文件的重复代码
+- 排班参数固定 `date=today`、`period=MORNING`，保留今日语义
+- 不改动生产代码（Clock 注入留给后续 ticket）
+
+详细决策见 ADR-0018。
 
 ## 验收标准
 

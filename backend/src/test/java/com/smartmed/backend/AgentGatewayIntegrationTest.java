@@ -138,19 +138,30 @@ class AgentGatewayIntegrationTest {
                 .andExpect(jsonPath("$.code").value(401));
     }
 
-    // 7. 正确 secret + 已知工具 → 501（09 阶段未实现）
+    // 7. 正确 secret + 未实现工具 → 501
     @Test
-    void agentTool_withSecret_knownTool_returns501() throws Exception {
-        mockMvc.perform(post("/api/agent/tools/query_departments")
+    void agentTool_withSecret_unimplementedTool_returns501() throws Exception {
+        mockMvc.perform(post("/api/agent/tools/query_schedule")
                         .header("X-Agent-Secret", "smartmed-dev-agent-secret-change-me")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"arguments\":{}}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(501))
-                .andExpect(jsonPath("$.message").value("工具未实现: query_departments"));
+                .andExpect(jsonPath("$.message").value("工具未实现: query_schedule"));
     }
 
-    // 8. 未知工具 → 404
+    // 8. 正确 secret + 已实现工具 → 200
+    @Test
+    void agentTool_withSecret_implementedTool_returns200() throws Exception {
+        mockMvc.perform(post("/api/agent/tools/query_departments")
+                        .header("X-Agent-Secret", "smartmed-dev-agent-secret-change-me")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"arguments\":{}}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
+    }
+
+    // 9. 未知工具 → 404
     @Test
     void agentTool_unknownTool_returns404() throws Exception {
         mockMvc.perform(post("/api/agent/tools/unknown_tool")

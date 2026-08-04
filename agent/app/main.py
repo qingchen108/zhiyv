@@ -23,7 +23,7 @@ from pydantic import BaseModel
 from app.config import get_settings
 from app.graph import AgentState, build_graph
 from app.security import require_agent_secret
-from app.sse import delta_event, done_event, error_event
+from app.sse import delta_event, done_event, error_event, tool_call_event
 
 logger = logging.getLogger(__name__)
 
@@ -84,14 +84,19 @@ async def echo_stream(req: ChatRequest) -> AsyncIterator[str]:
 
 
 async def agent_stream(req: ChatRequest) -> AsyncIterator[str]:
-    """真实模式：LangGraph 状态机 → mock 意图回复 → 分块 delta。异常兜底 error 事件。"""
+    """真实模式：LangGraph 状态机 → 意图节点回复 → 分块 delta。异常兜底 error 事件。"""
     try:
         graph = get_graph()
         state = await graph.ainvoke(AgentState(
             messages=[{"role": m.role, "content": m.content} for m in req.messages],
             intent="",
             reply="",
+            tool_calls=[],
         ))
+        # 先发射 tool_call 事件（如果有）
+        for tc in state.get("tool_calls") or []:
+            yield tool_call_event(tc.get("tool", ""), tc.get("label", ""))
+        # 再发射回复文本
         reply = state.get("reply") or ""
         for chunk in _chunks(reply):
             yield delta_event(chunk)
