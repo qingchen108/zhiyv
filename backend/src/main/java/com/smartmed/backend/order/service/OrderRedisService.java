@@ -1,4 +1,4 @@
-﻿package com.smartmed.backend.order.service;
+package com.smartmed.backend.order.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -1,4 +1,4 @@
-﻿package com.smartmed.backend.order.controller;
+package com.smartmed.backend.order.controller;
 
 import com.smartmed.backend.common.BusinessException;
 import com.smartmed.backend.common.Result;

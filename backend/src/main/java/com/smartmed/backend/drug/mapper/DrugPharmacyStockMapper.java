@@ -1,4 +1,4 @@
-﻿package com.smartmed.backend.drug.mapper;
+package com.smartmed.backend.drug.mapper;
 
 import com.smartmed.backend.drug.dto.DrugPharmacyStockVO;
 import org.apache.ibatis.annotations.Mapper;

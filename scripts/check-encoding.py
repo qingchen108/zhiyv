@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """pre-commit 编码校验：防止中文源文件编码损坏（ADR-0019）。
 
-检查暂存区或指定路径下的 .py / .json 文件：
+检查暂存区或指定路径下的 .py / .json / .java 文件：
 1. 无 UTF-8 BOM（\xef\xbb\xbf）
 2. UTF-8 解码合法
-3. .py 能 py_compile 通过；.json 能 json.load 通过
+3. .py 能 py_compile 通过；.json 能 json.load 通过；.java 仅做 1+2（语法交给 javac）
 
 用法：
     python scripts/check-encoding.py              # 检查暂存区（pre-commit 用）
@@ -42,8 +42,8 @@ def is_excluded(path: Path) -> bool:
 
 
 def check_file(path: Path) -> list[str]:
-    """返回该文件的问题列表（空 = 通过）。只检查 .py / .json。"""
-    if path.suffix not in (".py", ".json"):
+    """返回该文件的问题列表（空 = 通过）。检查 .py / .json / .java。"""
+    if path.suffix not in (".py", ".json", ".java"):
         return []
     if not path.exists() or is_excluded(path):
         return []
@@ -53,7 +53,7 @@ def check_file(path: Path) -> list[str]:
 
     # 1. BOM
     if raw.startswith(BOM):
-        problems.append("含 UTF-8 BOM（json.load/py_compile 会拒绝或污染）")
+        problems.append("含 UTF-8 BOM（javac/json.load/py_compile 会拒绝或污染）")
 
     # 2. UTF-8 合法
     try:
@@ -62,7 +62,7 @@ def check_file(path: Path) -> list[str]:
         problems.append(f"UTF-8 解码失败: {e}")
         return problems  # 后续检查无意义
 
-    # 3. 语法/结构
+    # 3. 语法/结构（.java 仅做 BOM + UTF-8 校验，语法交给 javac/mvn）
     if path.suffix == ".py":
         try:
             py_compile.compile(str(path), doraise=True)
@@ -88,8 +88,8 @@ def main() -> int:
     else:
         files = staged_files()
 
-    # 只保留 .py / .json，排除目录
-    targets = [f for f in files if f.suffix in (".py", ".json") and not is_excluded(f)]
+    # 只保留 .py / .json / .java，排除目录
+    targets = [f for f in files if f.suffix in (".py", ".json", ".java") and not is_excluded(f)]
 
     if not targets:
         return 0
@@ -105,7 +105,7 @@ def main() -> int:
 
     if failed:
         print(f"\n编码校验未通过：{failed} 个文件有问题。", file=sys.stderr)
-        print("修复：确保 .py/.json 无 BOM、UTF-8 合法、语法/结构可解析。", file=sys.stderr)
+        print("修复：确保 .py/.json/.java 无 BOM、UTF-8 合法；.py/.json 还需语法/结构可解析。", file=sys.stderr)
         print("见 ADR-0019。", file=sys.stderr)
         return 1
 
