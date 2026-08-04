@@ -121,6 +121,12 @@ def build_intent_node(intent: str, llm: BaseChatModel | None = None) -> Callable
 
         return build_consultation_node(llm)
 
+    # pharmacy 意图使用真实编排（ticket 14），购药对比 + 下单草稿，需 LLM 生成对比文案
+    if intent == "pharmacy":
+        from app.pharmacy import build_pharmacy_node
+
+        return build_pharmacy_node(llm)
+
     def node(state: dict[str, Any]) -> dict[str, Any]:
         # TODO(11-15): 意图 {intent} 的真实编排：工具调用链 + card 事件，见 agent/tools/tools.json
         return {"reply": MOCK_REPLIES[intent], "tool_calls": state.get("tool_calls") or []}

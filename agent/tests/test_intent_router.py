@@ -26,6 +26,7 @@ async def test_graph_routes_to_correct_intent_node(intent):
 
     registration 节点使用真实编排（ticket 12），调用 Java 工具会因不可达而返回错误提示；
     consultation 节点使用真实编排（ticket 13），无 LLM 时降级为框架回复（非 mock 原文）；
+    pharmacy 节点使用真实编排（ticket 14），无 LLM 时降级为引导文案（非 mock 原文）；
     其他意图仍为 mock 回复。
     """
     graph = build_graph(router=make_fake_router(intent))
@@ -39,6 +40,10 @@ async def test_graph_routes_to_correct_intent_node(intent):
         # consultation 节点为真实编排（ticket 13），无 LLM 时降级为框架回复，非 mock 原文
         assert "reply" in state
         assert state["reply"] != MOCK_REPLIES["consultation"]
+    elif intent == "pharmacy":
+        # pharmacy 节点为真实编排（ticket 14），无 LLM 时降级为引导文案，非 mock 原文
+        assert "reply" in state
+        assert state["reply"] != MOCK_REPLIES["pharmacy"]
     else:
         assert state["reply"] == MOCK_REPLIES[intent]
 
@@ -88,9 +93,10 @@ async def test_router_llm_failure_falls_back_to_general():
     assert await router(MESSAGES) == "general"
 
 
-def test_intent_node_returns_mock_reply():
+async def test_pharmacy_node_returns_greeting_not_mock():
+    """pharmacy 节点为真实编排（ticket 14），空消息返回引导文案而非 mock 原文。"""
     node = build_intent_node("pharmacy")
-    assert node({"messages": MESSAGES, "intent": "pharmacy", "reply": ""}) == {
-        "reply": MOCK_REPLIES["pharmacy"],
-        "tool_calls": [],
-    }
+    result = await node({"messages": [], "intent": "pharmacy", "reply": "", "tool_calls": []})
+    assert "reply" in result
+    assert result["reply"] != MOCK_REPLIES["pharmacy"]
+    assert "处方" in result["reply"] or "购药" in result["reply"]
