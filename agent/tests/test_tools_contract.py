@@ -1,6 +1,6 @@
 """工具契约测试（09 ticket）。
 
-钉死 tools.json 的结构约束：11 个工具、name 唯一、字段齐全、
+钉死 tools.json 的结构约束：12 个工具、name 唯一、字段齐全、
 动作类工具无 confirm（ADR-0015）、必填参数合理。
 """
 
@@ -9,7 +9,7 @@ from pathlib import Path
 
 TOOLS_JSON = Path(__file__).resolve().parents[1] / "tools" / "tools.json"
 
-EXPECTED_TOOL_COUNT = 11
+EXPECTED_TOOL_COUNT = 12
 # ADR-0015：confirm 类工具不入 Agent 工具集
 FORBIDDEN_TOOLS = {"confirm_registration", "confirm_order"}
 
@@ -20,7 +20,7 @@ def load_tools() -> list[dict]:
     return data["tools"]
 
 
-def test_tool_count_is_11():
+def test_tool_count_is_12():
     assert len(load_tools()) == EXPECTED_TOOL_COUNT
 
 

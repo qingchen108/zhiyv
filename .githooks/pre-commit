@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# pre-commit: 中文源文件编码校验（ADR-0019）
+# 检查暂存区 .py/.json 无 BOM、UTF-8 合法、可编译/可解析。
+# 通过则放行，有损坏则阻断 commit。
+
+set -e
+
+# 定位仓库根（hook 执行时 cwd 为仓库根，但显式更稳）
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+exec python "$REPO_ROOT/scripts/check-encoding.py" --staged

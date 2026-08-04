@@ -1,4 +1,4 @@
-﻿"""预问诊与处方解读（consultation）意图节点编排（ticket 13）。
+"""预问诊与处方解读（consultation）意图节点编排（ticket 13）。
 
 处理三种场景：
 1. 预问诊流程：引导患者补充主诉、现病史、既往史、过敏史 → 生成摘要卡片
@@ -173,7 +173,7 @@ def _format_allergy_warning(warnings: list[dict[str, Any]]) -> str:
             lines.append(f"   {desc}")
         lines.append("")
 
-    lines.append("**建议：** 请立即联系您的医生，确认是否需要调整用药方案。")
+    lines.append("**建议：** 请立即联系医生，确认是否需要调整用药方案。")
     lines.append("**注意：** 在医生确认前，请勿自行购买或服用该药物。")
     lines.append("")
     lines.append("*AI 检测仅供参考，请以医生专业判断为准。*")

@@ -22,9 +22,10 @@ def make_fake_router(intent: str):
 
 @pytest.mark.parametrize("intent", INTENTS)
 async def test_graph_routes_to_correct_intent_node(intent):
-    """每个意图都有一条条件边 → 对应节点。
+    """每个意图都有一条条件边 -> 对应节点。
 
-    registration 节点使用真实编排（ticket 12），调用 Java 工具会因不可达而返回错误提示，
+    registration 节点使用真实编排（ticket 12），调用 Java 工具会因不可达而返回错误提示；
+    consultation 节点使用真实编排（ticket 13），无 LLM 时降级为框架回复（非 mock 原文）；
     其他意图仍为 mock 回复。
     """
     graph = build_graph(router=make_fake_router(intent))
@@ -34,6 +35,10 @@ async def test_graph_routes_to_correct_intent_node(intent):
         # registration 节点为真实编排（无 mock 回复），验证它返回了工具调用
         assert "tool_calls" in state
         assert "reply" in state
+    elif intent == "consultation":
+        # consultation 节点为真实编排（ticket 13），无 LLM 时降级为框架回复，非 mock 原文
+        assert "reply" in state
+        assert state["reply"] != MOCK_REPLIES["consultation"]
     else:
         assert state["reply"] == MOCK_REPLIES[intent]
 

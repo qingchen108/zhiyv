@@ -1,7 +1,7 @@
 # 智愈（SmartMed）— 技术决策上下文
 
 > 本文件记录所有已确认的技术决策，作为团队开发的单一参考来源。
-> 最后更新：2026-08-03（§12 集成测试策略新增）
+> 最后更新：2026-08-04（§13 Agent 中文源文件编码规范新增，见 ADR-0019）
 
 ---
 
@@ -224,6 +224,20 @@
 
 ---
 
+## 13. Agent 中文源文件编码规范
+
+| 决策项 | 结论 |
+|--------|------|
+| 背景 | ticket 13 commit `b0445af` 写入含中文的 `intents.py` / `tools.json` 时编码损坏：intents.py 37/129 行 UTF-8 解码失败 + line 21 字节截断致 SyntaxError；tools.json 被加 UTF-8 BOM 致 `json.load` 拒绝。整个 Agent 运行时与全部测试瘫痪，见 ADR-0019 |
+| 完成 口径 | ticket `Status: done` 以**本机全量测试绿**为准（`python -m pytest tests/` 全绿），不接受"代码写完即 done" |
+| intents.py 修复 | 回退到 `b0445af^`（cbb5c19）未损坏基底 + 干净补回 consultation 分支接入；不就地还原乱码 |
+| tools.json 修复 | 剥 BOM 保留全部 12 个工具内容；不回退契约 |
+| 旧测试同步 | 行为变更（加工具/接真实节点）必须同步更新依赖该行为的骨架测试，否则视为未完成 |
+| 编码约束 | 含中文的 Python/JSON 源文件提交前需确认：无 BOM、UTF-8 合法、`py_compile` 通过；已落地 git pre-commit 钩子（`scripts/check-encoding.py` + `.githooks/pre-commit` + `core.hooksPath=.githooks`），见 ADR-0019 |
+| 钩子激活 | 新克隆仓库需执行 `git config core.hooksPath .githooks` 激活（git 限制，不自动生效） |
+
+---
+
 ## 术语表（Glossary）
 
 | 术语 | 定义 |
@@ -272,3 +286,5 @@
 | 集成测试基类（IntegrationTestBase） | 所有集成测试的薄基类，提供 `adminToken()` / `loginAs()` / `today()` 等公共 helper，消除跨文件重复，见 ADR-0018 |
 | 排班夹具（ScheduleFixture） | 测试用 `@Component`，通过 JdbcTemplate INSERT + Redis SET 直接造排班数据，绕过 API 层，消除时间窗口敏感，见 ADR-0018 |
 | 药店库存扣减 | 购药 confirm 同事务 SQL 扣减 drug_pharmacy_stock.stock，stock 不足返回 400，不做 Redis 并发控制 |
+| 完成 口径（Done Criteria） | ticket 标 `done` 的判定标准：本机全量测试绿为准（Agent 侧 `python -m pytest tests/` 全绿），不接受"代码写完即 done"，见 ADR-0019 |
+| 编码损坏（Encoding Corruption） | 含中文源文件在写入时因编码处理错误导致 UTF-8 解码失败/BOM 注入/字节截断，使模块无法 import 或 JSON 无法解析；ticket 13 的 `b0445af` 曾同时引入三处，见 ADR-0019 |
