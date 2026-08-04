@@ -45,27 +45,70 @@
           <!-- 确认卡片（card 帧，仅当轮展示） -->
           <view class="msg-card" a:if="{{item.card}}" data-index="{{index}}" onTap="onCardTap">
             <view class="msg-card-title">{{item.card.title}}</view>
-            <view class="msg-card-payload">
-              <view class="msg-card-row" a:for="{{item.card.payload}}" a:for-item="pv" a:for-index="pk" a:key="pk" a:if="{{pk !== 'confirmToken' && pk !== 'draftKey' && pk !== 'scheduleId' && pk !== 'familyMemberId'}}">
-                <text class="msg-card-label">{{pk}}</text>
-                <text class="msg-card-value">{{pv}}</text>
+
+            <!-- 购药确认卡片：展示药店/金额/药品明细 -->
+            <block a:if="{{item.card.type === 'order_confirm'}}">
+              <view class="msg-card-payload">
+                <view class="msg-card-row">
+                  <text class="msg-card-label">药店</text>
+                  <text class="msg-card-value">{{item.card.payload.pharmacyName}}</text>
+                </view>
+                <view class="msg-card-row">
+                  <text class="msg-card-label">总金额</text>
+                  <text class="msg-card-value">¥{{item.card.payload.totalAmount}}</text>
+                </view>
+                <view class="msg-card-row" a:if="{{item.card.payload.items}}">
+                  <text class="msg-card-label">药品</text>
+                  <text class="msg-card-value">{{item.card.payload.items.length}} 种</text>
+                </view>
               </view>
-            </view>
-            <!-- 成功后凭证卡片 -->
-            <view class="msg-card-voucher" a:if="{{item.card.status === 'success'}}">
-              <text class="msg-card-voucher-text">✅ {{item.card.result || '操作成功'}}</text>
-              <text class="msg-card-voucher-hint">就诊前 1 天会提醒您</text>
-            </view>
-            <view class="msg-card-status" a:if="{{item.card.status === 'fail'}}">
-              <text class="msg-card-fail">✕ {{item.card.result || '操作失败'}}</text>
-            </view>
-            <view class="msg-card-btns" a:if="{{!item.card.status || item.card.status === 'idle'}}">
-              <view class="msg-card-btn msg-card-btn-primary" data-index="{{index}}" catchTap="onCardTap">确认挂号</view>
-              <view class="msg-card-btn" data-index="{{index}}" catchTap="onCardCancel">取消</view>
-            </view>
-            <view class="msg-card-status" a:if="{{item.card.status === 'loading'}}">
-              <text class="msg-card-loading">处理中…</text>
-            </view>
+              <!-- 购药成功凭证卡片（本地渲染 confirm 返回的 DrugOrderVO） -->
+              <view class="msg-card-voucher" a:if="{{item.card.status === 'success' && item.card.voucherData}}">
+                <text class="msg-card-voucher-text">✅ 购药成功</text>
+                <view class="msg-card-voucher-detail">
+                  <text class="msg-card-voucher-line">订单号：{{item.card.voucherData.id}}</text>
+                  <text class="msg-card-voucher-line" a:if="{{item.card.voucherData.pharmacyName}}">药店：{{item.card.voucherData.pharmacyName}}</text>
+                  <text class="msg-card-voucher-line" a:if="{{item.card.voucherData.totalAmount}}">金额：¥{{item.card.voucherData.totalAmount}}</text>
+                  <text class="msg-card-voucher-line" a:if="{{item.card.voucherData.status}}">状态：{{item.card.voucherData.status}}</text>
+                </view>
+                <text class="msg-card-voucher-hint">✅ 已为您设置用药提醒</text>
+              </view>
+              <view class="msg-card-status" a:if="{{item.card.status === 'fail'}}">
+                <text class="msg-card-fail">✕ {{item.card.result || '操作失败'}}</text>
+              </view>
+              <view class="msg-card-btns" a:if="{{!item.card.status || item.card.status === 'idle'}}">
+                <view class="msg-card-btn msg-card-btn-primary" data-index="{{index}}" catchTap="onCardTap">确认购药</view>
+                <view class="msg-card-btn" data-index="{{index}}" catchTap="onCardCancel">取消</view>
+              </view>
+              <view class="msg-card-status" a:if="{{item.card.status === 'loading'}}">
+                <text class="msg-card-loading">处理中…</text>
+              </view>
+            </block>
+
+            <!-- 挂号确认卡片（通用模板，保留原逻辑） -->
+            <block a:else>
+              <view class="msg-card-payload">
+                <view class="msg-card-row" a:for="{{item.card.payload}}" a:for-item="pv" a:for-index="pk" a:key="pk" a:if="{{pk !== 'confirmToken' && pk !== 'draftKey' && pk !== 'scheduleId' && pk !== 'familyMemberId'}}">
+                  <text class="msg-card-label">{{pk}}</text>
+                  <text class="msg-card-value">{{pv}}</text>
+                </view>
+              </view>
+              <!-- 成功后凭证卡片 -->
+              <view class="msg-card-voucher" a:if="{{item.card.status === 'success'}}">
+                <text class="msg-card-voucher-text">✅ {{item.card.result || '操作成功'}}</text>
+                <text class="msg-card-voucher-hint">就诊前 1 天会提醒您</text>
+              </view>
+              <view class="msg-card-status" a:if="{{item.card.status === 'fail'}}">
+                <text class="msg-card-fail">✕ {{item.card.result || '操作失败'}}</text>
+              </view>
+              <view class="msg-card-btns" a:if="{{!item.card.status || item.card.status === 'idle'}}">
+                <view class="msg-card-btn msg-card-btn-primary" data-index="{{index}}" catchTap="onCardTap">确认挂号</view>
+                <view class="msg-card-btn" data-index="{{index}}" catchTap="onCardCancel">取消</view>
+              </view>
+              <view class="msg-card-status" a:if="{{item.card.status === 'loading'}}">
+                <text class="msg-card-loading">处理中…</text>
+              </view>
+            </block>
           </view>
 
           <!-- 免责声明 -->

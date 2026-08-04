@@ -33,6 +33,8 @@ interface ChatItem {
     payload: Record<string, unknown>;
     status?: 'idle' | 'loading' | 'success' | 'fail';
     result?: string;
+    /** 购药确认成功后本地渲染的订单凭证（confirm 返回的 DrugOrderVO）。 */
+    voucherData?: Record<string, unknown>;
   };
   /** 流式进行中（打字机占位）。 */
   streaming?: boolean;
@@ -458,9 +460,15 @@ Page({
     })
       .then((res) => {
         if (res.code === 200) {
-          this.setCardStatus(index, 'success', '操作成功');
+          // 购药确认成功：存 DrugOrderVO 供本地凭证渲染
+          const voucherData = card.type === 'order_confirm' && res.data ? res.data : undefined;
+          this.setCardStatus(index, 'success', '操作成功', voucherData);
         } else {
           this.setCardStatus(index, 'fail', res.message || '操作失败');
+          // 库存不足专属提示（后端 confirm 返回 400 + "药品库存不足"）
+          if (res.code === 400 || (res.message && res.message.indexOf('库存') >= 0)) {
+            my.showToast({ content: res.message || '该药店库存不足，请重新选择', type: 'fail' });
+          }
         }
       })
       .catch(() => {
@@ -475,10 +483,10 @@ Page({
     this.setData({ messages: list });
   },
 
-  setCardStatus(index: number, status: 'loading' | 'success' | 'fail', result: string) {
+  setCardStatus(index: number, status: 'loading' | 'success' | 'fail', result: string, voucherData?: Record<string, unknown>) {
     const list = this.data.messages.map((m, i) => {
       if (i === index && m.card) {
-        return { ...m, card: { ...m.card, status, result } };
+        return { ...m, card: { ...m.card, status, result, voucherData } };
       }
       return m;
     });
