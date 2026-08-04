@@ -138,16 +138,38 @@ class AgentGatewayIntegrationTest {
                 .andExpect(jsonPath("$.code").value(401));
     }
 
-    // 7. 正确 secret + 未实现工具 → 501
+    // 7. 正确 secret + query_schedule 已实现 → 200
     @Test
-    void agentTool_withSecret_unimplementedTool_returns501() throws Exception {
+    void agentTool_querySchedule_returns200() throws Exception {
         mockMvc.perform(post("/api/agent/tools/query_schedule")
                         .header("X-Agent-Secret", "smartmed-dev-agent-secret-change-me")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"arguments\":{}}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(501))
-                .andExpect(jsonPath("$.message").value("工具未实现: query_schedule"));
+                .andExpect(jsonPath("$.code").value(200));
+    }
+
+    // 7b. 正确 secret + create_registration_draft 无 X-Patient-Id → 400
+    @Test
+    void agentTool_createRegistrationDraft_withoutPatientId_returns400() throws Exception {
+        mockMvc.perform(post("/api/agent/tools/create_registration_draft")
+                        .header("X-Agent-Secret", "smartmed-dev-agent-secret-change-me")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"arguments\":{\"schedule_id\":1}}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(400));
+    }
+
+    // 7c. 正确 secret + create_registration_draft 含 X-Patient-Id → 200（调度无效，但不会 501）
+    @Test
+    void agentTool_createRegistrationDraft_withPatientId_returns200() throws Exception {
+        mockMvc.perform(post("/api/agent/tools/create_registration_draft")
+                        .header("X-Agent-Secret", "smartmed-dev-agent-secret-change-me")
+                        .header("X-Patient-Id", "1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"arguments\":{\"schedule_id\":1}}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
     }
 
     // 8. 正确 secret + 已实现工具 → 200
