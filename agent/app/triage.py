@@ -10,6 +10,7 @@ from typing import Any
 
 from langchain_core.language_models.chat_models import BaseChatModel
 
+from app.emotion import Emotion, apply_emotion_care, detect_emotion, inject_emotion
 from app.tool_client import call_java_tool
 
 logger = logging.getLogger(__name__)
@@ -156,20 +157,26 @@ def build_triage_node(llm: BaseChatModel):
         if not messages:
             return {"reply": "您好，我是智愈健康助手，请描述您的症状，我可以帮您分析并推荐合适的科室和医生。"}
 
-        # 1. 检查紧急症状
-        if _detect_emergency(messages):
+        # 0. 情感识别（旁路能力，ticket 15）：影响语气与紧急判定
+        emotion = await detect_emotion(messages, llm=llm)
+
+        # 1. 检查紧急症状（疼痛情绪协同：剧烈疼痛同样触发紧急建议 + 快速导诊）
+        if _detect_emergency(messages) or emotion == Emotion.PAIN:
             return {
-                "reply": (
-                    "⚠️ **检测到您描述的可能是紧急症状，请立即就医！**\n\n"
-                    "您提到的症状需要紧急医疗处理，请立即前往最近医院的急诊科，"
-                    "或拨打 120 急救电话。\n\n"
-                    "本对话为 AI 辅助，不能替代专业医疗判断。"
+                "reply": apply_emotion_care(
+                    (
+                        "⚠️ **检测到您描述的可能是紧急症状，请立即就医！**\n\n"
+                        "您提到的症状需要紧急医疗处理，请立即前往最近医院的急诊科，"
+                        "或拨打 120 急救电话。\n\n"
+                        "本对话为 AI 辅助，不能替代专业医疗判断。"
+                    ),
+                    emotion,
                 ),
             }
 
-        # 2. 用 LLM 分析症状信息完整性
+        # 2. 用 LLM 分析症状信息完整性（system prompt 注入情绪语气指令）
         llm_messages = [
-            {"role": "system", "content": _TRIAGE_SYSTEM_PROMPT},
+            {"role": "system", "content": inject_emotion(_TRIAGE_SYSTEM_PROMPT, emotion)},
             *messages,
         ]
 
@@ -241,11 +248,11 @@ def build_triage_node(llm: BaseChatModel):
             parts.append("🤖 *AI 建议仅供参考，不能替代专业医疗诊断。如症状加重，请及时就医。*")
 
             return {
-                "reply": "\n".join(parts),
+                "reply": apply_emotion_care("\n".join(parts), emotion),
                 "tool_calls": tool_calls,
             }
 
         # 4. 信息不足，返回 LLM 追问
-        return {"reply": reply_content}
+        return {"reply": apply_emotion_care(reply_content, emotion)}
 
     return node

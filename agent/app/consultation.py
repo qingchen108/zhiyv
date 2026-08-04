@@ -15,6 +15,7 @@ from typing import Any
 
 from langchain_core.language_models.chat_models import BaseChatModel
 
+from app.emotion import Emotion, apply_emotion_care, detect_emotion, inject_emotion
 from app.tool_client import call_java_tool
 from app.sse import card_event
 
@@ -213,7 +214,7 @@ def build_consultation_node(llm: BaseChatModel | None = None):
 
     # ============ 预问诊处理 ============
 
-    async def _handle_pre_consultation(messages: list[dict]) -> dict[str, Any]:
+    async def _handle_pre_consultation(messages: list[dict], emotion: Emotion = Emotion.NEUTRAL) -> dict[str, Any]:
         """使用 LLM 处理预问诊对话。"""
         nonlocal _phase, _pre_diagnosis_data
         _phase = "pre_consulting"
@@ -227,7 +228,7 @@ def build_consultation_node(llm: BaseChatModel | None = None):
             }
 
         llm_messages = [
-            {"role": "system", "content": _PRE_CONSULT_PROMPT},
+            {"role": "system", "content": inject_emotion(_PRE_CONSULT_PROMPT, emotion)},
             *messages,
         ]
 
@@ -242,12 +243,12 @@ def build_consultation_node(llm: BaseChatModel | None = None):
         decision = _extract_json_from_llm(reply_content)
         if decision and decision.get("action") == "summary":
             _pre_diagnosis_data = decision
-            return await _finalize_pre_diagnosis(decision)
+            return await _finalize_pre_diagnosis(decision, emotion)
 
         # 信息不足，继续追问
-        return {"reply": reply_content}
+        return {"reply": apply_emotion_care(reply_content, emotion)}
 
-    async def _finalize_pre_diagnosis(data: dict[str, str]) -> dict[str, Any]:
+    async def _finalize_pre_diagnosis(data: dict[str, str], emotion: Emotion = Emotion.NEUTRAL) -> dict[str, Any]:
         """完成预问诊：生成摘要 + 卡片。"""
         nonlocal _phase, _pre_diagnosis_data
         _phase = "idle"
@@ -274,13 +275,15 @@ def build_consultation_node(llm: BaseChatModel | None = None):
             "这份摘要将在医生接诊时展示，帮助医生快速了解您的情况。"
             "您也可以随时告诉我需要修改的内容。"
         )
+        # 问诊后主动关怀（ticket 15）：3 天回访话术
+        reply = apply_emotion_care(reply, emotion, scene="follow_up_visit")
 
         _pre_diagnosis_data = {}
         return {"reply": reply, "tool_calls": tool_calls, "card": card}
 
     # ============ 处方解读处理 ============
 
-    async def _handle_prescription_interpretation(messages: list[dict]) -> dict[str, Any]:
+    async def _handle_prescription_interpretation(messages: list[dict], emotion: Emotion = Emotion.NEUTRAL) -> dict[str, Any]:
         """处理处方解读。"""
         nonlocal _phase
         _phase = "interpreting"
@@ -318,10 +321,10 @@ def build_consultation_node(llm: BaseChatModel | None = None):
         # 格式化处方信息
         formatted = _format_prescription_for_llm(prescription_data)
 
-        # 用 LLM 生成通俗解释
+        # 用 LLM 生成通俗解释（system prompt 注入情绪语气，困惑场景强化通俗分步）
         if llm is not None:
             llm_messages = [
-                {"role": "system", "content": _PRESCRIPTION_INTERPRET_PROMPT},
+                {"role": "system", "content": inject_emotion(_PRESCRIPTION_INTERPRET_PROMPT, emotion)},
                 {"role": "user", "content": f"请解释以下处方：\n\n{formatted}"},
             ]
             try:
@@ -352,7 +355,7 @@ def build_consultation_node(llm: BaseChatModel | None = None):
                 logger.warning("过敏检查失败: %s", e)
 
         _phase = "idle"
-        return {"reply": reply_content, "tool_calls": tool_calls}
+        return {"reply": apply_emotion_care(reply_content, emotion), "tool_calls": tool_calls}
 
     # ============ 过敏检查处理 ============
 
@@ -423,9 +426,9 @@ def build_consultation_node(llm: BaseChatModel | None = None):
             return {
                 "reply": (
                     "您好，我是您的健康助手。请问您需要什么帮助？\n\n"
-                    "1️⃣ **预问诊** — 在看医生前，先让我帮您整理病情摘要\n"
-                    "2️⃣ **处方解读** — 把处方上的药给您讲明白\n"
-                    "3️⃣ **过敏检查** — 检查您的药物是否安全\n\n"
+                    "1️⃣ **预问诊** - 在看医生前，先让我帮您整理病情摘要\n"
+                    "2️⃣ **处方解读** - 把处方上的药给您讲明白\n"
+                    "3️⃣ **过敏检查** - 检查您的药物是否安全\n\n"
                     "请告诉我您需要哪项服务？"
                 ),
             }
@@ -440,13 +443,16 @@ def build_consultation_node(llm: BaseChatModel | None = None):
         if not last_user_msg:
             return {"reply": "请问您需要什么帮助？"}
 
+        # 情感识别（旁路能力，ticket 15）：影响语气，困惑场景强化通俗解读
+        emotion = await detect_emotion(messages, llm=llm)
+
         # === 场景路由 ===
         if any(kw in last_user_msg for kw in ["处方", "开药", "药怎么吃", "药品", "解读", "查处方", "看处方"]):
-            return await _handle_prescription_interpretation(messages)
+            return await _handle_prescription_interpretation(messages, emotion)
 
         if any(kw in last_user_msg for kw in ["过敏", "过不过敏", "安全吗", "检查过敏", "过敏检查"]):
             return await _handle_allergy_check(messages)
 
-        return await _handle_pre_consultation(messages)
+        return await _handle_pre_consultation(messages, emotion)
 
     return node

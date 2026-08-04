@@ -11,6 +11,7 @@ import logging
 import re
 from typing import Any
 
+from app.emotion import apply_emotion_care, detect_emotion
 from app.tool_client import call_java_tool
 from app.sse import card_event
 
@@ -109,6 +110,9 @@ def build_registration_node():
         if not last_user_msg:
             return {"reply": _REGISTRATION_GREETING}
 
+        # 情感识别（旁路能力，ticket 15）：关键词检测（纯确定性节点无 LLM）
+        emotion = await detect_emotion(messages)
+
         # 判断用户是否在排班列表中做了选择
         if _current_schedules:
             selected = _extract_schedule_choice(last_user_msg, _current_schedules)
@@ -164,6 +168,8 @@ def build_registration_node():
                     f"📅 {draft_result.get('scheduleDate', '')} {period_label}\n\n"
                     "请点击下方卡片确认挂号。"
                 )
+                # 挂号成功主动关怀（ticket 15）：就诊准备提醒
+                reply = apply_emotion_care(reply, emotion, scene="registration_success")
 
                 return {
                     "reply": reply,
@@ -193,7 +199,7 @@ def build_registration_node():
 
         reply = _format_schedule_options(schedules)
         return {
-            "reply": reply,
+            "reply": apply_emotion_care(reply, emotion),
             "tool_calls": tool_calls,
         }
 

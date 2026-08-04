@@ -16,6 +16,7 @@ from typing import Any
 
 from langchain_core.language_models.chat_models import BaseChatModel
 
+from app.emotion import Emotion, apply_emotion_care, detect_emotion, inject_emotion
 from app.tool_client import call_java_tool
 from app.sse import card_event
 
@@ -276,12 +277,15 @@ def build_pharmacy_node(llm: BaseChatModel | None = None):
         if not last_user_msg:
             return {"reply": _PHARMACY_GREETING}
 
+        # 情感识别（旁路能力，ticket 15）：影响对比文案语气
+        emotion = await detect_emotion(messages, llm=llm)
+
         # === awaiting_choice 阶段：用户选药店 ===
         if _phase == "awaiting_choice" and _pharmacy_options:
             selected = _extract_pharmacy_choice(last_user_msg, _pharmacy_options)
             if selected:
                 pharmacy_id = selected.get("pharmacyId")
-                return await _create_order_draft(_prescription_id, pharmacy_id, selected)
+                return await _create_order_draft(_prescription_id, pharmacy_id, selected, emotion)
             # 无效选择，重新提示
             return {"reply": _PHARMACY_CHOICE_PROMPT}
 
@@ -339,12 +343,12 @@ def build_pharmacy_node(llm: BaseChatModel | None = None):
                     }
         _pharmacy_options = list(seen.values())
 
-        # LLM 生成对比文案，无 LLM 降级模板
+        # LLM 生成对比文案，无 LLM 降级模板（system prompt 注入情绪语气指令）
         if llm is not None:
             context = _build_compare_context(prescription_data, stock_by_drug)
             try:
                 res = await llm.ainvoke([
-                    {"role": "system", "content": _PHARMACY_COMPARE_PROMPT},
+                    {"role": "system", "content": inject_emotion(_PHARMACY_COMPARE_PROMPT, emotion)},
                     {"role": "user", "content": context},
                 ])
                 reply_content = res.content if isinstance(res.content, str) else str(res.content)
@@ -355,11 +359,12 @@ def build_pharmacy_node(llm: BaseChatModel | None = None):
             reply_content = _format_pharmacy_comparison(prescription_data, stock_by_drug)
 
         _phase = "awaiting_choice"
-        return {"reply": reply_content, "tool_calls": tool_calls}
+        return {"reply": apply_emotion_care(reply_content, emotion), "tool_calls": tool_calls}
 
     async def _create_order_draft(prescription_id: int | None,
                                    pharmacy_id: int | None,
-                                   selected: dict[str, Any]) -> dict[str, Any]:
+                                   selected: dict[str, Any],
+                                   emotion: Emotion = Emotion.NEUTRAL) -> dict[str, Any]:
         """用户选定药店 -> 创建购药草稿 -> 生成确认卡片。"""
         nonlocal _phase, _pharmacy_options
         tool_calls = [{"tool": "create_order_draft", "label": "正在创建购药草稿..."}]
@@ -408,6 +413,8 @@ def build_pharmacy_node(llm: BaseChatModel | None = None):
             "请点击下方卡片确认购药。\n"
             "✅ 确认后将自动为您设置用药提醒。"
         )
+        # 处方用完复诊提醒（ticket 15 主动关怀）
+        reply = apply_emotion_care(reply, emotion, scene="prescription_refill")
 
         return {"reply": reply, "tool_calls": tool_calls, "card": card}
 
