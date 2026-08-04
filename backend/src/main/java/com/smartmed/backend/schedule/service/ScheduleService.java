@@ -19,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.List;
@@ -47,6 +48,7 @@ public class ScheduleService {
     private final DoctorMapper doctorMapper;
     private final DepartmentMapper departmentMapper;
     private final ScheduleRedisService redisService;
+    private final Clock clock;
 
     // ==================== CRUD ====================
 
@@ -222,7 +224,7 @@ public class ScheduleService {
         }
         // 目标周日期窗口校验（目标周最后一天 <= today+14）
         LocalDate tgtEnd = tgtStart.plusDays(6);
-        LocalDate maxDate = LocalDate.now().plusDays(MAX_ADVANCE_DAYS);
+        LocalDate maxDate = LocalDate.now(clock).plusDays(MAX_ADVANCE_DAYS);
         if (tgtEnd.isAfter(maxDate)) {
             throw new BusinessException(400, "目标周超出排班窗口（最多" + MAX_ADVANCE_DAYS + "天）");
         }
@@ -278,7 +280,7 @@ public class ScheduleService {
     }
 
     private void validateDateWindow(LocalDate date) {
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(clock);
         if (date.isBefore(today)) {
             throw new BusinessException(400, "排班日期不能早于今天");
         }

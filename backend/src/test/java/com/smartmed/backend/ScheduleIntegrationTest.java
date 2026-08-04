@@ -1,14 +1,11 @@
 package com.smartmed.backend;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.smartmed.backend.security.JwtTokenProvider;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,6 +42,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
                 "org.springframework.boot.autoconfigure.neo4j.Neo4jAutoConfiguration"
 })
 @AutoConfigureMockMvc
+@Import(IntegrationTestBase.FixedClockConfig.class)
 @TestPropertySource(properties = {
         "DB_HOST=192.168.100.128",
         "DB_PORT=5432",
@@ -61,36 +59,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "AGENT_SECRET=smartmed-dev-agent-secret-change-me"
 })
 @Transactional
-class ScheduleIntegrationTest {
-
-    @Autowired
-    private MockMvc mockMvc;
-    @Autowired
-    private ObjectMapper objectMapper;
-    @Autowired
-    private JwtTokenProvider tokenProvider;
-
-    private String adminToken() throws Exception {
-        return login("13800000000", "admin123");
-    }
-
-    private String doctorToken() throws Exception {
-        return login("13800000002", "doctor123");
-    }
-
-    private String login(String phone, String pwd) throws Exception {
-        MvcResult r = mockMvc.perform(post("/api/auth/login")
-                        .contentType("application/json")
-                        .content("{\"phone\":\"" + phone + "\",\"password\":\"" + pwd + "\"}"))
-                .andReturn();
-        JsonNode data = objectMapper.readTree(r.getResponse().getContentAsString()).path("data");
-        return data.get("token").asText();
-    }
-
-    /** 获取下一个可用的排班日期（明天，确保在窗口内）。 */
-    private String tomorrow() {
-        return LocalDate.now().plusDays(1).toString();
-    }
+class ScheduleIntegrationTest extends IntegrationTestBase {
 
     /** 创建排班的标准请求体。 */
     private String scheduleBody(String date, String period) {

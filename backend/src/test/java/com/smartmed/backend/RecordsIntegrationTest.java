@@ -1,25 +1,20 @@
 package com.smartmed.backend;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.smartmed.backend.order.entity.DrugOrder;
 import com.smartmed.backend.order.entity.MedicationReminder;
 import com.smartmed.backend.order.mapper.DrugOrderMapper;
 import com.smartmed.backend.order.mapper.MedicationReminderMapper;
-import com.smartmed.backend.security.JwtTokenProvider;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 
@@ -48,6 +43,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
                 "org.springframework.boot.autoconfigure.neo4j.Neo4jAutoConfiguration"
 })
 @AutoConfigureMockMvc
+@Import(IntegrationTestBase.FixedClockConfig.class)
 @TestPropertySource(properties = {
         "DB_HOST=192.168.100.128",
         "DB_PORT=5432",
@@ -64,56 +60,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "AGENT_SECRET=smartmed-dev-agent-secret-change-me"
 })
 @Transactional
-class RecordsIntegrationTest {
+class RecordsIntegrationTest extends IntegrationTestBase {
 
-    @Autowired
-    private MockMvc mockMvc;
-    @Autowired
-    private ObjectMapper objectMapper;
-    @Autowired
-    private JwtTokenProvider tokenProvider;
-    @Autowired
-    private StringRedisTemplate redisTemplate;
     @Autowired
     private DrugOrderMapper drugOrderMapper;
     @Autowired
     private MedicationReminderMapper reminderMapper;
 
-    private String cToken() {
-        return tokenProvider.issueCToken(1L);
-    }
-
-    private String doctorToken() throws Exception {
-        return login("13800000002", "doctor123");
-    }
-
-    private String adminToken() throws Exception {
-        return login("13800000000", "admin123");
-    }
-
-    private String login(String phone, String password) throws Exception {
-        MvcResult r = mockMvc.perform(post("/api/auth/login")
-                        .contentType("application/json")
-                        .content("{\"phone\":\"" + phone + "\",\"password\":\"" + password + "\"}"))
-                .andReturn();
-        JsonNode data = objectMapper.readTree(r.getResponse().getContentAsString()).path("data");
-        return data.get("token").asText();
-    }
-
-    /** 今日日期。 */
-    private String today() {
-        return LocalDate.now().toString();
-    }
-
-    /** 选一个今日尚未结束的班次（17:00 后 EVENING，12:00 后 AFTERNOON，否则 MORNING）。 */
+    /**
+     * 固定班次：Clock 固定在 10:00，MORNING（08:00-12:00）永不结束，挂号不被拒。
+     * （08b：原 todayPeriod() 在 21:00 后选 EVENING 已结束导致 400，现由固定 Clock 消除）
+     */
     private String todayPeriod() {
-        LocalTime now = LocalTime.now();
-        if (now.isAfter(LocalTime.of(17, 0))) {
-            return "EVENING";
-        }
-        if (now.isAfter(LocalTime.of(12, 0))) {
-            return "AFTERNOON";
-        }
         return "MORNING";
     }
 

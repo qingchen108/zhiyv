@@ -1,19 +1,13 @@
 package com.smartmed.backend;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.smartmed.backend.security.JwtTokenProvider;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDate;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -40,6 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
                 "org.springframework.boot.autoconfigure.neo4j.Neo4jAutoConfiguration"
 })
 @AutoConfigureMockMvc
+@Import(IntegrationTestBase.FixedClockConfig.class)
 @TestPropertySource(properties = {
         "DB_HOST=192.168.100.128",
         "DB_PORT=5432",
@@ -56,33 +51,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "AGENT_SECRET=smartmed-dev-agent-secret-change-me"
 })
 @Transactional
-class RegistrationIntegrationTest {
-
-    @Autowired
-    private MockMvc mockMvc;
-    @Autowired
-    private ObjectMapper objectMapper;
-    @Autowired
-    private JwtTokenProvider tokenProvider;
-    @Autowired
-    private StringRedisTemplate redisTemplate;
-
-    private String cToken() {
-        return tokenProvider.issueCToken(1L);
-    }
-
-    private String adminToken() throws Exception {
-        MvcResult r = mockMvc.perform(post("/api/auth/login")
-                        .contentType("application/json")
-                        .content("{\"phone\":\"13800000000\",\"password\":\"admin123\"}"))
-                .andReturn();
-        JsonNode data = objectMapper.readTree(r.getResponse().getContentAsString()).path("data");
-        return data.get("token").asText();
-    }
-
-    private String tomorrow() {
-        return LocalDate.now().plusDays(1).toString();
-    }
+class RegistrationIntegrationTest extends IntegrationTestBase {
 
     /** 创建排班并返回 schedule ID。 */
     private long createSchedule(String date, String period, int totalSlots) throws Exception {

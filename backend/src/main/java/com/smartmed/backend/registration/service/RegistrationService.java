@@ -29,6 +29,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -58,6 +59,7 @@ public class RegistrationService {
     private final ScheduleRedisService scheduleRedisService;
     private final ObjectMapper objectMapper;
     private final ConsultationMapper consultationMapper;
+    private final Clock clock;
 
     @Value("${smartmed.jwt.secret}")
     private String jwtSecret;
@@ -103,7 +105,7 @@ public class RegistrationService {
         }
 
         // 6. 生成 confirmToken
-        long createdAtMillis = System.currentTimeMillis();
+        long createdAtMillis = clock.millis();
         String confirmToken = redisService.generateConfirmToken(patientId, scheduleId, createdAtMillis, jwtSecret);
 
         // 7. 构建草稿 value 并写入 Redis
@@ -206,7 +208,7 @@ public class RegistrationService {
 
             // 生成 reg_no
             long seq = registrationMapper.nextRegNoSeq();
-            String regNo = "REG" + LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE)
+            String regNo = "REG" + LocalDate.now(clock).format(DateTimeFormatter.BASIC_ISO_DATE)
                     + String.format("%03d", seq);
 
             Registration reg = new Registration();
@@ -259,7 +261,7 @@ public class RegistrationService {
             TimePeriod tp = TimePeriod.valueOf(schedule.getTimePeriod());
             LocalDateTime visitStart = LocalDateTime.of(schedule.getScheduleDate(), tp.getStartTime());
             LocalDateTime cancelDeadline = visitStart.minusHours(2);
-            if (LocalDateTime.now().isAfter(cancelDeadline)) {
+            if (LocalDateTime.now(clock).isAfter(cancelDeadline)) {
                 throw new BusinessException(400, "距就诊不足2小时，无法取消");
             }
         }
@@ -321,13 +323,13 @@ public class RegistrationService {
     // ==================== 内部方法 ====================
 
     private void validateNotExpired(Schedule schedule) {
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(clock);
         if (schedule.getScheduleDate().isBefore(today)) {
             throw new BusinessException(400, "排班日期已过期");
         }
         if (schedule.getScheduleDate().equals(today)) {
             TimePeriod tp = TimePeriod.valueOf(schedule.getTimePeriod());
-            if (LocalTime.now().isAfter(tp.getEndTime())) {
+            if (LocalTime.now(clock).isAfter(tp.getEndTime())) {
                 throw new BusinessException(400, "该班次已结束，无法挂号");
             }
         }

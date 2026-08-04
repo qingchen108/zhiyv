@@ -1,20 +1,13 @@
 package com.smartmed.backend;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.smartmed.backend.security.JwtTokenProvider;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDate;
-import java.time.LocalTime;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -33,6 +26,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
+@Import(IntegrationTestBase.FixedClockConfig.class)
 @TestPropertySource(properties = {
         "DB_HOST=192.168.100.128",
         "DB_PORT=5432",
@@ -49,58 +43,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "AGENT_SECRET=smartmed-dev-agent-secret-change-me"
 })
 @Transactional
-class DoctorWorkspaceIntegrationTest {
-
-    @Autowired
-    private MockMvc mockMvc;
-    @Autowired
-    private ObjectMapper objectMapper;
-    @Autowired
-    private JwtTokenProvider tokenProvider;
-    @Autowired
-    private StringRedisTemplate redisTemplate;
-
-    /** C 端演示患者 token（patient.id=1）。 */
-    private String cToken() {
-        return tokenProvider.issueCToken(1L);
-    }
-
-    /** 演示医生 token（doctor.id=1，张呼吸）。 */
-    private String doctorToken() throws Exception {
-        return login("13800000002", "doctor123");
-    }
-
-    /** 管理员 token。 */
-    private String adminToken() throws Exception {
-        return login("13800000000", "admin123");
-    }
-
-    private String login(String phone, String password) throws Exception {
-        MvcResult r = mockMvc.perform(post("/api/auth/login")
-                        .contentType("application/json")
-                        .content("{\"phone\":\"" + phone + "\",\"password\":\"" + password + "\"}"))
-                .andReturn();
-        JsonNode data = objectMapper.readTree(r.getResponse().getContentAsString()).path("data");
-        return data.get("token").asText();
-    }
-
-    /** 今日日期。 */
-    private String today() {
-        return LocalDate.now().toString();
-    }
+class DoctorWorkspaceIntegrationTest extends IntegrationTestBase {
 
     /**
-     * 选一个今日尚未结束的班次，避免挂号时"班次已结束"校验失败。
-     * 17:00 后选 EVENING，12:00 后选 AFTERNOON，否则 MORNING。
+     * 固定班次：Clock 固定在 10:00，MORNING（08:00-12:00）永不结束，挂号不被拒。
+     * （08b：原 todayPeriod() 在 21:00 后选 EVENING 已结束导致 400，现由固定 Clock 消除）
      */
     private String todayPeriod() {
-        LocalTime now = LocalTime.now();
-        if (now.isAfter(LocalTime.of(17, 0))) {
-            return "EVENING";
-        }
-        if (now.isAfter(LocalTime.of(12, 0))) {
-            return "AFTERNOON";
-        }
         return "MORNING";
     }
 
@@ -202,7 +151,7 @@ class DoctorWorkspaceIntegrationTest {
                                 + "\"phone\":\"13900000099\",\"password\":\"123456\"}"))
                 .andExpect(jsonPath("$.code").value(200));
 
-        String doctorBToken = login("13900000099", "123456");
+        String doctorBToken = loginAs("13900000099", "123456");
 
         mockMvc.perform(get("/api/b/consultations/" + consultationId)
                         .header("Authorization", "Bearer " + doctorBToken))
@@ -408,7 +357,7 @@ class DoctorWorkspaceIntegrationTest {
                                 + "\"birthDate\":\"1985-01-01\",\"title\":\"主治医师\","
                                 + "\"phone\":\"13900000098\",\"password\":\"123456\"}"))
                 .andExpect(jsonPath("$.code").value(200));
-        String doctorC = login("13900000098", "123456");
+        String doctorC = loginAs("13900000098", "123456");
 
         // 跨医生编辑 403
         mockMvc.perform(put("/api/b/prescription-templates/" + templateId)

@@ -23,6 +23,8 @@ import com.smartmed.backend.prescription.entity.Prescription;
 import com.smartmed.backend.prescription.entity.PrescriptionItem;
 import com.smartmed.backend.prescription.mapper.PrescriptionItemMapper;
 import com.smartmed.backend.prescription.mapper.PrescriptionMapper;
+import com.smartmed.backend.knowledge.Neo4jContraindicationService;
+import com.smartmed.backend.knowledge.dto.ContraindicationWarning;
 import com.smartmed.backend.registration.entity.PatientFamilyMember;
 import com.smartmed.backend.registration.entity.Registration;
 import com.smartmed.backend.registration.mapper.PatientFamilyMemberMapper;
@@ -34,6 +36,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.Period;
 import java.util.HashMap;
@@ -41,18 +44,18 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 问诊业务服务�?6 ticket，ADR-0011，CONTEXT §10）�?
+ * 问诊业务服务（06 ticket，ADR-0011，CONTEXT §10）。
  * <p>
- * 状态机：WAITING -> IN_PROGRESS -> COMPLETED 单向不可回退；COMPLETED 同步 registration �?VISITED�?
- * 流转权限：仅 consultation.doctor_id = 当前医生，跨医生 403�?
- * 消息：仅 IN_PROGRESS 可发，医生侧仅写 DOCTOR 消息、读全部�?
- * 病历聚合：以实际就诊人为中心（ADR-0010 口径），跨医生可见�?
+ * 状态机：WAITING -> IN_PROGRESS -> COMPLETED 单向不可回退；COMPLETED 同步 registration 翻 VISITED。
+ * 流转权限：仅 consultation.doctor_id = 当前医生，跨医生 403。
+ * 消息：仅 IN_PROGRESS 可发，医生侧仅写 DOCTOR 消息、读全部。
+ * 病历聚合：以实际就诊人为中心（ADR-0010 口径），跨医生可见。
  */
 @Service
 @RequiredArgsConstructor
 public class ConsultationService {
 
-    /** 预问诊摘要截取长度�?*/
+    /** 预问诊摘要截取长度。 */
     private static final int BRIEF_MAX = 80;
 
     private final ConsultationMapper consultationMapper;
@@ -67,14 +70,15 @@ public class ConsultationService {
     private final PrescriptionItemMapper prescriptionItemMapper;
     private final com.smartmed.backend.drug.mapper.DrugMapper drugMapper;
     private final Neo4jContraindicationService contraindicationService;
+    private final Clock clock;
 
-    // ==================== 今日待接诊列�?====================
+    // ==================== 今日待接诊列表 ====================
 
     public PageResponse<ConsultationVO> todayWaiting(long pageNum, long pageSize) {
         Long doctorId = currentDoctorId();
-        List<Consultation> all = consultationMapper.findTodayWaiting(doctorId, LocalDate.now());
+        List<Consultation> all = consultationMapper.findTodayWaiting(doctorId, LocalDate.now(clock));
         long total = all.size();
-        // 内存分页（一天挂号量有限�?
+        // 内存分页（一天挂号量有限）
         int from = (int) Math.min((pageNum - 1) * pageSize, total);
         int to = (int) Math.min(from + pageSize, total);
         List<ConsultationVO> records = all.subList(from, to).stream()
@@ -90,31 +94,31 @@ public class ConsultationService {
         return toVO(c);
     }
 
-    // ==================== 状态流�?====================
+    // ==================== 状态流转 ====================
 
-    /** 接诊：WAITING -> IN_PROGRESS�?*/
+    /** 接诊：WAITING -> IN_PROGRESS。 */
     @Transactional
     public ConsultationVO start(Long id) {
         Consultation c = loadOwnedConsultation(id);
         if (!"WAITING".equals(c.getStatus())) {
-            throw new BusinessException(400, "当前状态不可接诊（�?WAITING 可接诊）");
+            throw new BusinessException(400, "当前状态不可接诊（仅 WAITING 可接诊）");
         }
         c.setStatus("IN_PROGRESS");
         consultationMapper.updateById(c);
         return toVO(c);
     }
 
-    /** 完成：IN_PROGRESS -> COMPLETED，同�?registration �?VISITED�?*/
+    /** 完成：IN_PROGRESS -> COMPLETED，同步 registration 翻 VISITED。 */
     @Transactional
     public ConsultationVO complete(Long id) {
         Consultation c = loadOwnedConsultation(id);
         if (!"IN_PROGRESS".equals(c.getStatus())) {
-            throw new BusinessException(400, "当前状态不可完成（�?IN_PROGRESS 可完成）");
+            throw new BusinessException(400, "当前状态不可完成（仅 IN_PROGRESS 可完成）");
         }
         c.setStatus("COMPLETED");
         consultationMapper.updateById(c);
 
-        // 同步 registration -> VISITED（ADR-0011�?
+        // 同步 registration -> VISITED（ADR-0011）
         Registration reg = registrationMapper.selectById(c.getRegistrationId());
         if (reg != null && "REGISTERED".equals(reg.getStatus())) {
             reg.setStatus("VISITED");
@@ -125,12 +129,12 @@ public class ConsultationService {
 
     // ==================== 诊断保存 ====================
 
-    /** 保存诊断：IN_PROGRESS 可改�?*/
+    /** 保存诊断：IN_PROGRESS 可改。 */
     @Transactional
     public ConsultationVO saveDiagnosis(Long id, DiagnosisRequest req) {
         Consultation c = loadOwnedConsultation(id);
         if (!"IN_PROGRESS".equals(c.getStatus())) {
-            throw new BusinessException(400, "仅进行中问诊可保存诊�?);
+            throw new BusinessException(400, "仅进行中问诊可保存诊断");
         }
         c.setDiagnosis(req.getDiagnosis());
         consultationMapper.updateById(c);
@@ -139,12 +143,12 @@ public class ConsultationService {
 
     // ==================== 消息 ====================
 
-    /** 发消息：�?DOCTOR、仅 IN_PROGRESS�?*/
+    /** 发消息：仅 DOCTOR、仅 IN_PROGRESS。 */
     @Transactional
     public MessageVO sendMessage(Long id, MessageRequest req) {
         Consultation c = loadOwnedConsultation(id);
         if (!"IN_PROGRESS".equals(c.getStatus())) {
-            throw new BusinessException(400, "仅进行中问诊可发送消�?);
+            throw new BusinessException(400, "仅进行中问诊可发送消息");
         }
         ConsultationMessage msg = new ConsultationMessage();
         msg.setConsultationId(id);
@@ -159,7 +163,7 @@ public class ConsultationService {
                 .build();
     }
 
-    /** 消息列表：读全部（DOCTOR + PATIENT），按时间升序�?*/
+    /** 消息列表：读全部（DOCTOR + PATIENT），按时间升序。 */
     public List<MessageVO> listMessages(Long id) {
         loadOwnedConsultation(id); // 校验归属
         List<ConsultationMessage> msgs = messageMapper.selectList(
@@ -180,10 +184,10 @@ public class ConsultationService {
         Consultation c = loadOwnedConsultation(id);
         Registration reg = registrationMapper.selectById(c.getRegistrationId());
         if (reg == null) {
-            throw new BusinessException(404, "挂号记录不存�?);
+            throw new BusinessException(404, "挂号记录不存在");
         }
 
-        // 实际就诊人基本信息（ADR-0010 口径�?
+        // 实际就诊人基本信息（ADR-0010 口径）
         Long familyMemberId = reg.getFamilyMemberId();
         String visitorName;
         String visitorGender;
@@ -193,7 +197,7 @@ public class ConsultationService {
         if (familyMemberId != null) {
             PatientFamilyMember fm = familyMemberMapper.selectById(familyMemberId);
             if (fm == null) {
-                throw new BusinessException(404, "家庭成员不存�?);
+                throw new BusinessException(404, "家庭成员不存在");
             }
             visitorName = fm.getName();
             visitorGender = fm.getGender();
@@ -210,30 +214,30 @@ public class ConsultationService {
             allergyHistory = p.getAllergyHistory();
         }
 
-        // 历史挂号（实际就诊人维度，ADR-0010�?
+        // 历史挂号（实际就诊人维度，ADR-0010）
         List<Registration> registrations = familyMemberId != null
                 ? consultationMapper.findRegistrationsByFamilyMember(familyMemberId)
                 : consultationMapper.findRegistrationsBySelf(reg.getPatientId());
 
-        // 历史问诊（通过挂号 ID 关联�?
+        // 历史问诊（通过挂号 ID 关联）
         List<Long> regIds = registrations.stream().map(Registration::getId).toList();
         List<Consultation> consultations = regIds.isEmpty() ? List.of()
                 : consultationMapper.selectList(new LambdaQueryWrapper<Consultation>()
                         .in(Consultation::getRegistrationId, regIds)
                         .orderByDesc(Consultation::getCreatedAt));
 
-        // 历史处方（通过问诊 ID 关联�?
+        // 历史处方（通过问诊 ID 关联）
         List<Long> consultationIds = consultations.stream().map(Consultation::getId).toList();
         List<Prescription> prescriptions = consultationIds.isEmpty() ? List.of()
                 : prescriptionMapper.selectList(new LambdaQueryWrapper<Prescription>()
                         .in(Prescription::getConsultationId, consultationIds)
                         .orderByDesc(Prescription::getCreatedAt));
 
-        // 处方明细批量查（避免 N+1�?
+        // 处方明细批量查（避免 N+1）
         Map<Long, List<PrescriptionItem>> itemsByPrescription = loadItemsByPrescription(
                 prescriptions.stream().map(Prescription::getId).toList());
 
-        // 医生/科室名批量加�?
+        // 医生/科室名批量加载
         Map<Long, String> doctorNames = loadDoctorNames(registrations.stream()
                 .map(Registration::getDoctorId).distinct().toList());
 
@@ -250,7 +254,7 @@ public class ConsultationService {
                 .build();
     }
 
-    // ==================== 该问诊的处方列表（供 /consultations/{id}/prescriptions�?====================
+    // ==================== 该问诊的处方列表（供 /consultations/{id}/prescriptions） ====================
 
     public List<PrescriptionVO> listPrescriptionsByConsultation(Long id) {
         loadOwnedConsultation(id);
@@ -267,31 +271,31 @@ public class ConsultationService {
 
     // ==================== 内部方法 ====================
 
-    /** 取当前登录医�?ID，非医生或未关联 403�?*/
+    /** 取当前登录医生 ID，非医生或未关联 403。 */
     private Long currentDoctorId() {
         Long doctorId = SecurityUtil.current().getDoctorId();
         if (doctorId == null) {
-            throw new BusinessException(403, "当前账号未关联医�?);
+            throw new BusinessException(403, "当前账号未关联医生");
         }
         return doctorId;
     }
 
-    /** 加载问诊并校验归属（doctor_id = 当前医生），跨医�?403�?*/
+    /** 加载问诊并校验归属（doctor_id = 当前医生），跨医生 403。 */
     private Consultation loadOwnedConsultation(Long id) {
         Consultation c = consultationMapper.selectById(id);
         if (c == null) {
-            throw new BusinessException(404, "问诊不存�?);
+            throw new BusinessException(404, "问诊不存在");
         }
         Long doctorId = currentDoctorId();
         if (!c.getDoctorId().equals(doctorId)) {
-            throw new BusinessException(403, "无权操作此问�?);
+            throw new BusinessException(403, "无权操作此问诊");
         }
         return c;
     }
 
     /**
-     * 构建问诊 VO（详�?+ 列表共用）�?
-     * <p>public �?C 端记录查询（08 ticket RecordsService）复用，避免重复实现�?
+     * 构建问诊 VO（详情 + 列表共用）。
+     * <p>public 供 C 端记录查询（08 ticket RecordsService）复用，避免重复实现。
      */
     public ConsultationVO toVO(Consultation c) {
         Registration reg = registrationMapper.selectById(c.getRegistrationId());
@@ -299,7 +303,7 @@ public class ConsultationService {
         Doctor doctor = doctorMapper.selectById(c.getDoctorId());
         Department dept = schedule != null ? departmentMapper.selectById(schedule.getDepartmentId()) : null;
 
-        // 实际就诊人信�?
+        // 实际就诊人信息
         String visitorName = null;
         String visitorGender = null;
         LocalDate visitorBirthDate = null;
@@ -380,7 +384,7 @@ public class ConsultationService {
         return map;
     }
 
-    /** 批量取药品名（处方明细展示用，避免前端降级显�?药品{id}"）�?*/
+    /** 批量取药品名（处方明细展示用，避免前端降级显示"药品{id}"）。 */
     private Map<Long, String> loadDrugNames(List<Long> drugIds) {
         if (drugIds.isEmpty()) {
             return Map.of();
@@ -419,7 +423,7 @@ public class ConsultationService {
     }
 
     private PrescriptionVO toPrescriptionVO(Prescription p, List<PrescriptionItem> items) {
-        // 批量加载药品名（单处方的 items 数量有限，避免前端降级显�?药品{id}"�?
+        // 批量加载药品名（单处方的 items 数量有限，避免前端降级显示"药品{id}"）
         Map<Long, String> drugNames = loadDrugNames(items.stream().map(PrescriptionItem::getDrugId).distinct().toList());
         return PrescriptionVO.builder()
                 .id(p.getId())
@@ -441,27 +445,28 @@ public class ConsultationService {
                 .createdAt(p.getCreatedAt())
                 .build();
     }
-    // ==================== Agent ���ߣ�Ԥ����ժҪд�루ticket 13�� ====================
+
+    // ==================== Agent 工具：预问诊摘要写入（ticket 13） ====================
 
     @Transactional
     public void updatePreDiagnosis(Long consultationId, String content) {
         Consultation c = consultationMapper.selectById(consultationId);
         if (c == null) {
-            throw new BusinessException(404, "�����¼������");
+            throw new BusinessException(404, "问诊记录不存在");
         }
         if (!"IN_PROGRESS".equals(c.getStatus())) {
-            throw new BusinessException(400, "�������������д��Ԥ����ժҪ");
+            throw new BusinessException(400, "仅进行中问诊可写入预问诊摘要");
         }
         c.setPreDiagnosis(content);
         consultationMapper.updateById(c);
     }
 
-    // ==================== Agent ���ߣ�������ѯ��ticket 13�� ====================
+    // ==================== Agent 工具：处方查询（ticket 13） ====================
 
     public PrescriptionVO getPrescriptionDetail(Long prescriptionId) {
         Prescription p = prescriptionMapper.selectById(prescriptionId);
         if (p == null) {
-            throw new BusinessException(404, "����������");
+            throw new BusinessException(404, "处方不存在");
         }
         List<PrescriptionItem> items = prescriptionItemMapper.selectList(
                 new LambdaQueryWrapper<PrescriptionItem>()
@@ -469,7 +474,7 @@ public class ConsultationService {
         return toPrescriptionVO(p, items);
     }
 
-    // ==================== Agent ���ߣ��������ռ�⣨ticket 13�� ====================
+    // ==================== Agent 工具：过敏风险检测（ticket 13） ====================
 
     public List<ContraindicationWarning> checkAllergyForAgent(Long patientId, Long familyMemberId, List<String> drugNames) {
         String allergyHistory = resolveAllergyHistory(patientId, familyMemberId);
@@ -484,13 +489,4 @@ public class ConsultationService {
         Patient p = patientMapper.selectById(patientId);
         return p != null ? p.getAllergyHistory() : null;
     }
-
-        List<com.smartmed.backend.drug.entity.Drug> drugs = drugMapper.selectBatchIds(drugIds);
-        Map<Long, String> map = new HashMap<>();
-        for (com.smartmed.backend.drug.entity.Drug d : drugs) {
-            map.put(d.getId(), d.getName());
-        }
-        return map;
-    }
-
 }

@@ -1,4 +1,4 @@
-﻿package com.smartmed.backend.order.service;
+package com.smartmed.backend.order.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -21,10 +21,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,6 +48,7 @@ public class OrderService {
     private final PharmacyMapper pharmacyMapper;
     private final OrderRedisService redisService;
     private final ObjectMapper objectMapper;
+    private final Clock clock;
 
     @Value("${smartmed.jwt.secret}")
     private String jwtSecret;
@@ -86,7 +88,7 @@ public class OrderService {
         String pharmacyName = pharmacy != null ? pharmacy.getName() : "";
 
         // 3. 生成 confirmToken
-        long createdAtMillis = System.currentTimeMillis();
+        long createdAtMillis = clock.millis();
         String confirmToken = redisService.generateConfirmToken(patientId, prescriptionId, pharmacyId,
                 createdAtMillis, jwtSecret);
 
@@ -194,9 +196,9 @@ public class OrderService {
                 reminder.setPrescriptionId(prescriptionId);
                 reminder.setDrugId(item.getDrugId());
                 // 今天该时间点，如果已过则明天
-                LocalTime now = LocalTime.now();
-                LocalDate targetDate = time.isBefore(now) ? LocalDate.now().plusDays(1) : LocalDate.now();
-                OffsetDateTime nextRemindAt = OffsetDateTime.of(targetDate, time, ZoneOffset.ofHours(8));
+                LocalTime now = LocalTime.now(clock);
+                LocalDate targetDate = time.isBefore(now) ? LocalDate.now(clock).plusDays(1) : LocalDate.now(clock);
+                OffsetDateTime nextRemindAt = ZonedDateTime.of(targetDate, time, clock.getZone()).toOffsetDateTime();
                 reminder.setNextRemindAt(nextRemindAt);
                 reminder.setFrequency(item.getFrequency());
                 reminder.setDosage(item.getDosage());

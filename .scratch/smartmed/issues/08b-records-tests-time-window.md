@@ -1,6 +1,6 @@
 # 08 记录/工作台集成测试存在晚间时间窗口缺陷
 
-**Status**: needs-info
+**Status**: done
 **Labels**: test, time-window
 **Blocking**: 无
 **ADR**: docs/adr/0018-integration-test-time-window-fix.md

@@ -215,12 +215,12 @@
 
 | 决策项 | 结论 |
 |--------|------|
-| 测试基类 | `IntegrationTestBase` 薄基类：`adminToken()`、`loginAs(phone, password)`、`today()`，所有集成测试继承 |
-| 排班夹具 | `ScheduleFixture`（`@Component`）：JdbcTemplate INSERT schedule + StringRedisTemplate SET `schedule:{id}:remaining_slots`，替代 `POST /api/b/schedules` API 调用 |
-| 时间窗口 | 测试夹具固定 `date=today` + `period=MORNING`，消除 21:00 后 EVENING 结束导致的时间敏感失败，见 ADR-0018 |
-| Redis 处理 | 夹具手动 SET key，teardown 手动 DEL，与 `@Transactional` 回滚互补 |
-| 生产代码 | 不动（`Clock` 注入留给后续重构） |
-| 适用范围 | 08b 首先落地（RecordsIntegrationTest + DoctorWorkspaceIntegrationTest），后续测试统一采用此模式 |
+| 测试基类 | `IntegrationTestBase` 薄基类：`adminToken()`、`loginAs(phone, password)`、`today()`、`tomorrow()`、`cToken()`、`doctorToken()`，所有集成测试继承 |
+| 时钟注入 | 生产 `ClockConfig` 提供 `@Bean Clock`（`systemDefaultZone()`）；测试基类内嵌 `FixedClockConfig`（`@Primary`，固定运行当天 10:00），4 个业务 Service 接入 Clock，消除时间窗口敏感 |
+| 时间窗口 | Clock 固定 10:00 + `todayPeriod()` 恒 MORNING（08:00-12:00 未结束），任何时间跑测试都通过，见 ADR-0018 修订 |
+| 生产代码改动 | 4 个 Service（Registration/Schedule/Consultation/Order）注入 Clock，`.now()` 改 `.now(clock)`；行为零变化（systemDefaultZone 与原 now() 一致） |
+| Redis 处理 | 测试沿用 API 建排班（内部自动 syncSlots），需防刷时手动 DEL `reg_ratelimit:*` key，与 `@Transactional` 回滚互补 |
+| 适用范围 | 08b 落地（Records + DoctorWorkspace + Registration + Schedule 四个测试继承基类），后续测试统一采用此模式 |
 
 ---
 
