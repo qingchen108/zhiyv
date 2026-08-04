@@ -57,11 +57,24 @@ def _extract_schedule_choice(user_message: str, schedules: list[dict]) -> dict |
     """从用户消息中提取排班选择。
 
     支持：
-    - "选第1个" / "第一个" / "1" 等编号选择
+    - "选第1个" / "第一个" / "1" 等编号选择（含中文数字）
     """
     text = user_message.strip()
 
-    # 先找编号模式
+    # 中文数字映射
+    _CN_NUM = {"零": 0, "一": 1, "二": 2, "三": 3, "四": 4, "五": 5,
+               "六": 6, "七": 7, "八": 8, "九": 9}
+
+    # 先尝试匹配中文数字："第X个" / "X个" / 单独中文数字
+    cn_match = re.search(r"[第]?(?:[零一二三四五六七八九十]+?)([个位])?", text)
+    if cn_match:
+        cn_num_str = cn_match.group(0).replace("第", "").replace("个", "").replace("位", "")
+        if cn_num_str in _CN_NUM:
+            idx = _CN_NUM[cn_num_str]
+            if 1 <= idx <= len(schedules):
+                return schedules[idx - 1]
+
+    # 再尝试匹配阿拉伯数字
     match = re.search(r"[第]?(\d+)[个位]?", text)
     if match:
         idx = int(match.group(1))
