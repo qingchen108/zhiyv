@@ -4,7 +4,7 @@
 
 **Blocked by:** 13 — Agent 预问诊与处方解读
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## 决策（grill-with-docs 2026-08-03）
 
