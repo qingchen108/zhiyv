@@ -1,6 +1,6 @@
-{
+﻿{
   "version": "1.0",
-  "description": "SmartMed Agent 工具契约单一来源（CONTEXT §5，ADR-0015）。两端以本文件为唯一事实源：Python 启动时读入注册 LangChain tools；Java 按 name 实现 /api/agent/tools/{name} 泛化路由。09 阶段仅声明不实现（Java handler 返回 501）。",
+  "description": "SmartMed Agent 工具契约单一来源（CONTEXT §5, ADR-0015）。两端以本文件为唯一事实源：Python 启动时读入注册 LangChain tools；Java 按 name 实现 /api/agent/tools/{name} 泛化路由。09 阶段仅声明不实现（Java handler 返回 501）。",
   "tools": [
     {
       "name": "query_departments",
@@ -61,7 +61,7 @@
     },
     {
       "name": "query_knowledge_graph",
-      "description": "查询知识图谱：症状/疾病关键词子串匹配，返回关联科室与医生建议。用于导诊推理。",
+      "description": "查询知识图谱：症状/疾病关键字子串匹配，返回关联科室与医生建议。用于导诊推理。",
       "type": "query",
       "java_endpoint": "/api/agent/tools/query_knowledge_graph",
       "parameters": {
@@ -85,7 +85,7 @@
         "properties": {
           "family_member_id": {
             "type": "integer",
-            "description": "家人 ID，可选；缺省为操作人本人（self）"
+            "description": "家人 ID，可选；省略为操作人本人（self）"
           }
         },
         "required": []
@@ -137,7 +137,7 @@
           },
           "family_member_id": {
             "type": "integer",
-            "description": "家人 ID，可选；缺省为操作人本人（self）"
+            "description": "家人 ID，可选；省略为操作人本人（self）"
           }
         },
         "required": ["schedule_id"]
@@ -210,7 +210,7 @@
           },
           "frequency": {
             "type": "string",
-            "description": "提醒频率（如：每日 3 次），可选"
+            "description": "提醒频率（如：每日3次），可选"
           },
           "dosage": {
             "type": "string",
@@ -218,6 +218,27 @@
           }
         },
         "required": ["prescription_id", "drug_id", "next_remind_at"]
+      }
+    },
+    {
+      "name": "check_allergy",
+      "description": "检测处方药物是否与患者过敏史冲突。用于处方解读时的过敏风险扫描。",
+      "type": "query",
+      "java_endpoint": "/api/agent/tools/check_allergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "drug_names": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "处方药物名称列表，如 [\"阿莫西林\", \"头孢克肟\"]"
+          },
+          "family_member_id": {
+            "type": "integer",
+            "description": "实际就诊人 ID，可省略表示本人"
+          }
+        },
+        "required": ["drug_names"]
       }
     }
   ]
