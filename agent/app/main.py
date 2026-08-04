@@ -16,7 +16,7 @@ from contextlib import asynccontextmanager
 from functools import lru_cache
 from typing import AsyncIterator, Literal
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
@@ -24,6 +24,7 @@ from app.config import get_settings
 from app.graph import AgentState, build_graph
 from app.security import require_agent_secret
 from app.sse import delta_event, done_event, error_event, tool_call_event
+from app.tool_client import set_patient_id
 
 logger = logging.getLogger(__name__)
 
@@ -63,8 +64,17 @@ async def health() -> dict[str, str]:
 
 
 @app.post("/agent/chat")
-async def chat(req: ChatRequest, _auth: None = Depends(require_agent_secret)) -> StreamingResponse:
-    """对话入口：校验 secret 后按模式输出 SSE 事件流。"""
+async def chat(req: ChatRequest,
+               _auth: None = Depends(require_agent_secret),
+               request: Request = None) -> StreamingResponse:
+    """对话入口：校验 secret 后按模式输出 SSE 事件流。
+
+    注入 X-Patient-Id（Java 网关注入的 header，工具调用时转发）。
+    """
+    # 注入 X-Patient-Id 到 contextvar（供 tool_client 转发）
+    patient_id = request.headers.get("X-Patient-Id", "")
+    set_patient_id(patient_id)
+
     settings = get_settings()
     if settings.agent_echo_mode:
         return StreamingResponse(echo_stream(req), media_type="text/event-stream")

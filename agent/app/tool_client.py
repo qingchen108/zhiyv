@@ -1,9 +1,6 @@
-"""Java 工具调用 HTTP 客户端（ticket 11）。
+"""Java 工具调用 HTTP 客户端（ticket 11，ticket 12 增强 X-Patient-Id 转发）。"""
 
-从 tools.json 加载工具契约，通过 HTTP 调用 Java 的 /api/agent/tools/{name} 端点。
-使用 httpx 异步客户端，带 X-Agent-Secret 鉴权。
-"""
-
+import contextvars
 import json
 import logging
 from pathlib import Path
@@ -17,6 +14,19 @@ logger = logging.getLogger(__name__)
 
 # tools.json 路径（相对于 agent/ 目录）
 _TOOLS_JSON = Path(__file__).resolve().parents[1] / "tools" / "tools.json"
+
+# 当前请求的 patientId（由 main.py 的 chat 端点从 X-Patient-Id header 注入）
+_patient_id_var: contextvars.ContextVar[str] = contextvars.ContextVar("patient_id", default="")
+
+
+def set_patient_id(patient_id: str) -> None:
+    """设置当前请求的 patientId（contextvar，线程安全）。"""
+    _patient_id_var.set(patient_id)
+
+
+def get_patient_id() -> str:
+    """获取当前请求的 patientId。"""
+    return _patient_id_var.get()
 
 
 def load_tools() -> list[dict[str, Any]]:
@@ -54,13 +64,15 @@ async def call_java_tool(tool_name: str, arguments: dict[str, Any] | None = None
     url = settings.java_gateway_url.rstrip("/") + endpoint
     body = {"arguments": arguments or {}}
 
+    headers = {"X-Agent-Secret": settings.agent_secret}
+    # 转发 X-Patient-Id（工具需要身份的操作，如 create_registration_draft）
+    pid = get_patient_id()
+    if pid:
+        headers["X-Patient-Id"] = pid
+
     async with httpx.AsyncClient(timeout=30) as client:
         try:
-            resp = await client.post(
-                url,
-                json=body,
-                headers={"X-Agent-Secret": settings.agent_secret},
-            )
+            resp = await client.post(url, json=body, headers=headers)
         except httpx.RequestError as e:
             logger.error("Java 工具调用失败: tool=%s url=%s error=%s", tool_name, url, e)
             raise RuntimeError(f"工具 {tool_name} 不可用：Java 服务不可达") from e
