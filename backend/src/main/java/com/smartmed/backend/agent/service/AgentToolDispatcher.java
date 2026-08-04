@@ -4,6 +4,8 @@ import com.smartmed.backend.common.BusinessException;
 import com.smartmed.backend.department.service.DepartmentService;
 import com.smartmed.backend.doctor.service.DoctorService;
 import com.smartmed.backend.knowledge.KnowledgeGraphService;
+import com.smartmed.backend.registration.dto.RegistrationDraftRequest;
+import com.smartmed.backend.registration.service.RegistrationService;
 import com.smartmed.backend.schedule.service.ScheduleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -43,6 +45,7 @@ public class AgentToolDispatcher {
     private final DepartmentService departmentService;
     private final DoctorService doctorService;
     private final ScheduleService scheduleService;
+    private final RegistrationService registrationService;
 
     /**
      * 分发工具调用。
@@ -51,7 +54,7 @@ public class AgentToolDispatcher {
      * @param arguments 工具参数
      * @return 工具执行结果
      */
-    public Object dispatch(String toolName, Map<String, Object> arguments) {
+    public Object dispatch(String toolName, Map<String, Object> arguments, String patientId) {
         if (!KNOWN_TOOLS.contains(toolName)) {
             throw new BusinessException(404, "未知工具: " + toolName);
         }
@@ -64,6 +67,7 @@ public class AgentToolDispatcher {
 
             // === 12 ticket 挂号相关工具 ===
             case "query_schedule" -> dispatchQuerySchedule(arguments);
+            case "create_registration_draft" -> dispatchCreateRegistrationDraft(arguments, patientId);
 
             // === 暂未实现的工具（12-15 ticket） ===
             default -> throw new BusinessException(501, "工具未实现: " + toolName);
@@ -102,6 +106,29 @@ public class AgentToolDispatcher {
         String dateStr = extractString(args, "date");
         java.time.LocalDate date = dateStr != null ? java.time.LocalDate.parse(dateStr) : null;
         return Map.of("schedules", scheduleService.queryForAgent(doctorId, departmentId, date));
+    }
+
+    /** 创建挂号草稿：委托 RegistrationService.createDraft()，patientId 从 X-Patient-Id header 注入。 */
+    private Object dispatchCreateRegistrationDraft(Map<String, Object> args, String patientId) {
+        Long scheduleId = extractLong(args, "schedule_id");
+        if (scheduleId == null) {
+            throw new BusinessException(400, "schedule_id 不能为空");
+        }
+        Long familyMemberId = extractLong(args, "family_member_id");
+
+        // 解析 patientId
+        Long patientIdLong;
+        try {
+            patientIdLong = Long.parseLong(patientId);
+        } catch (NumberFormatException e) {
+            throw new BusinessException(400, "X-Patient-Id 无效");
+        }
+
+        RegistrationDraftRequest draftReq = new RegistrationDraftRequest();
+        draftReq.setScheduleId(scheduleId);
+        draftReq.setFamilyMemberId(familyMemberId);
+
+        return registrationService.createDraft(patientIdLong, draftReq);
     }
 
     // ============ 参数提取辅助 ============

@@ -124,9 +124,23 @@ public class RegistrationService {
             throw new RuntimeException("草稿序列化失败", e);
         }
 
-        // 8. 返回
+        // 8. 返回（ticket 12 增强：填充卡片展示字段）
         Doctor doctor = doctorMapper.selectById(schedule.getDoctorId());
         Department dept = departmentMapper.selectById(schedule.getDepartmentId());
+
+        // 计算 timeRange
+        TimePeriod tp = TimePeriod.valueOf(schedule.getTimePeriod());
+        String timeRange = tp.getStartTime() + "-" + tp.getEndTime();
+
+        // 计算 visitorName
+        String visitorName;
+        if (familyMemberId != null) {
+            PatientFamilyMember fm = familyMemberMapper.selectById(familyMemberId);
+            visitorName = fm != null ? fm.getName() : "未知";
+        } else {
+            Patient patient = patientMapper.selectById(patientId);
+            visitorName = patient != null ? patient.getName() : "本人";
+        }
 
         return RegistrationDraftResponse.builder()
                 .draftKey(draftKey)
@@ -134,6 +148,10 @@ public class RegistrationService {
                 .scheduleId(scheduleId)
                 .doctorName(doctor != null ? doctor.getName() : "")
                 .departmentName(dept != null ? dept.getName() : "")
+                .scheduleDate(schedule.getScheduleDate())
+                .timePeriod(schedule.getTimePeriod())
+                .timeRange(timeRange)
+                .visitorName(visitorName)
                 .build();
     }
 
