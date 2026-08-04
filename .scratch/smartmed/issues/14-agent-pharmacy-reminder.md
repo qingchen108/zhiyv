@@ -20,14 +20,14 @@
 
 ## 验收标准
 
-- [ ] Java 工具实现：query_pharmacy_stock（按 drug_id 查各药店库存/价格/时效，返回扁平列表）
-- [ ] Java 工具实现：create_order_draft（写 Redis 草稿 TTL 30min + SHA-256 confirmToken）
-- [ ] Java：`POST /api/c/orders/confirm`（消费草稿 → 扣库存 → 写 drug_order → 自动生成 medication_reminder → 返回 DrugOrderVO）
-- [ ] Agent 展示药店对比（3 家药店，含距离、价格、配送时间）→ 用户选择 → 生成购药确认卡片
-- [ ] 购药确认卡片：type=order_confirm + payload 含完整草稿信息
-- [ ] 用户确认 → 前端直调 /api/c/orders/confirm → 成功前端本地渲染订单卡片
-- [ ] 库存不足 → confirm 返回 400 → 前端 toast 提示
-- [ ] 购药成功 → 自动生成用药提醒（frequency 关键词匹配 → 提醒时间点）
-- [ ] Agent 购药成功文案提示"已为您设置用药提醒"
-- [ ] 种子数据 drug_pharmacy_stock 库存调大（50→200）
-- [ ] pytest 测试：药店推荐、下单流程、提醒生成逻辑、库存扣减
+- [x] Java 工具实现：query_pharmacy_stock（按 drug_id 查各药店库存/价格/时效，返回扁平列表）
+- [x] Java 工具实现：create_order_draft（写 Redis 草稿 TTL 30min + SHA-256 confirmToken）
+- [x] Java：`POST /api/c/orders/confirm`（消费草稿 -> 扣库存 -> 写 drug_order -> 自动生成 medication_reminder -> 返回 DrugOrderVO）
+- [x] Agent 展示药店对比（3 家药店，含距离、价格、配送时间）-> 用户选择 -> 生成购药确认卡片
+- [x] 购药确认卡片：type=order_confirm + payload 含完整草稿信息
+- [x] 用户确认 -> 前端直调 /api/c/orders/confirm -> 成功前端本地渲染订单卡片
+- [x] 库存不足 -> confirm 返回 400 -> 前端 toast 提示
+- [x] 购药成功 -> 自动生成用药提醒（frequency 关键词匹配 -> 提醒时间点）
+- [x] Agent 购药成功文案提示"已为您设置用药提醒"
+- [x] 种子数据 drug_pharmacy_stock 库存调大（50->200）
+- [x] pytest 测试：药店推荐、下单流程、提醒生成逻辑、库存扣减
