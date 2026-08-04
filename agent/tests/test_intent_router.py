@@ -22,11 +22,20 @@ def make_fake_router(intent: str):
 
 @pytest.mark.parametrize("intent", INTENTS)
 async def test_graph_routes_to_correct_intent_node(intent):
-    """每个意图都有一条条件边 → 对应节点 → mock 回复。"""
+    """每个意图都有一条条件边 → 对应节点。
+
+    registration 节点使用真实编排（ticket 12），调用 Java 工具会因不可达而返回错误提示，
+    其他意图仍为 mock 回复。
+    """
     graph = build_graph(router=make_fake_router(intent))
     state = await graph.ainvoke(AgentState(messages=MESSAGES, intent="", reply=""))
     assert state["intent"] == intent
-    assert state["reply"] == MOCK_REPLIES[intent]
+    if intent == "registration":
+        # registration 节点为真实编排（无 mock 回复），验证它返回了工具调用
+        assert "tool_calls" in state
+        assert "reply" in state
+    else:
+        assert state["reply"] == MOCK_REPLIES[intent]
 
 
 class FakeLLM:

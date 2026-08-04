@@ -109,6 +109,12 @@ def build_intent_node(intent: str, llm: BaseChatModel | None = None) -> Callable
 
         return build_triage_node(llm)
 
+    # registration 意图使用真实编排（ticket 12），纯确定性，不需要 LLM
+    if intent == "registration":
+        from app.registration import build_registration_node
+
+        return build_registration_node()
+
     def node(state: dict[str, Any]) -> dict[str, Any]:
         # TODO(11-15): 意图 {intent} 的真实编排：工具调用链 + card 事件，见 agent/tools/tools.json
         return {"reply": MOCK_REPLIES[intent], "tool_calls": state.get("tool_calls") or []}
